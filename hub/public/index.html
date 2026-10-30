@@ -34,6 +34,22 @@
   </form>
 </dialog>
 
+<dialog id="deployDlg">
+  <form id="deployForm" autocomplete="off">
+    <h2>Deploy update</h2>
+    <p class="muted">Pulls the latest code from git and restarts the app. Teams' results are kept.</p>
+    <label for="deployPw">Password</label>
+    <input id="deployPw" type="password" required>
+    <p class="error" id="deployErr"></p>
+    <p class="muted" id="deployStatus" role="status"></p>
+    <pre class="deploy-log" id="deployLog" hidden></pre>
+    <div class="row end">
+      <button type="button" class="btn ghost" id="deployClose">Close</button>
+      <button class="btn" id="deployGo">Deploy</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="app.js"></script>
 </body>
 </html>

@@ -84,8 +84,10 @@
           <input id="pw" name="password" type="password" required>
           <p class="error" id="loginErr">${esc(msg || '')}</p>
           <button class="btn" style="width:100%">Start</button>
+          <button type="button" class="deploy-link" id="deployOpen">Deploy update</button>
         </form>
       </div>`;
+    document.getElementById('deployOpen').onclick = openDeploy;
     const form = document.getElementById('loginForm');
     const team = document.getElementById('team');
     team.addEventListener('input', () => { team.value = team.value.replace(/\s+/g, ''); });
@@ -307,6 +309,90 @@
     alert(e.message);
     go(state && state.finishedAt ? '#/results' : '#/');
   }
+
+  // ---------- deploy ----------
+  const deployDlg = document.getElementById('deployDlg');
+  const deployPw = document.getElementById('deployPw');
+  const deployErr = document.getElementById('deployErr');
+  const deployStatus = document.getElementById('deployStatus');
+  const deployLog = document.getElementById('deployLog');
+  const deployGo = document.getElementById('deployGo');
+  let deployBusy = false;
+
+  function openDeploy() {
+    deployPw.value = '';
+    deployErr.textContent = '';
+    deployStatus.textContent = '';
+    deployLog.hidden = true;
+    deployGo.disabled = false;
+    deployDlg.showModal();
+    deployPw.focus();
+  }
+  document.getElementById('deployClose').onclick = () => { if (!deployBusy) deployDlg.close(); };
+  deployDlg.addEventListener('cancel', (e) => { if (deployBusy) e.preventDefault(); });
+
+  const deployId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12));
+
+  async function bootedAt() {
+    const res = await fetch('api/health', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return (await res.json()).bootedAt;
+  }
+
+  // The server restarts mid-deploy, so wait until it answers again with a new boot time.
+  async function waitForRestart(before) {
+    const until = Date.now() + 90e3;
+    while (Date.now() < until) {
+      await new Promise((r) => setTimeout(r, 1500));
+      try { if ((await bootedAt()) !== before) return true; } catch (_) { /* still restarting */ }
+    }
+    return false;
+  }
+
+  document.getElementById('deployForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (deployBusy) return;
+    deployBusy = true;
+    deployGo.disabled = true;
+    deployErr.textContent = '';
+    deployLog.hidden = true;
+    deployStatus.textContent = 'Pulling the latest code and restarting…';
+    let before = null;
+    try { before = await bootedAt(); } catch (_) {}
+    let res = null, data = {};
+    try {
+      res = await fetch('api/deploy', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: deployPw.value, id: deployId() }),
+      });
+      try { data = await res.json(); } catch (_) {}
+    } catch (_) { /* connection dropped: the app is restarting */ }
+
+    // 409 "already run" means the browser re-sent this click after the restart: treat it as restarting.
+    const restarting = !res || [502, 503, 504].includes(res.status) || (res.status === 409 && data.bootedAt && data.bootedAt !== before);
+    if (!restarting) {
+      deployBusy = false;
+      if (data.output) { deployLog.textContent = data.output; deployLog.hidden = false; }
+      if (res.ok) {
+        deployStatus.textContent = 'Code pulled, but this app was not restarted. Check that PM2_APP points at this app.';
+      } else {
+        deployStatus.textContent = '';
+        deployErr.textContent = data.error || 'Deploy failed.';
+        deployGo.disabled = false;
+      }
+      return;
+    }
+
+    deployStatus.textContent = 'Restarting the app…';
+    const back = await waitForRestart(before);
+    deployBusy = false;
+    if (back) {
+      deployStatus.textContent = 'Deployed. Reloading…';
+      setTimeout(() => location.reload(), 800);
+    } else {
+      deployErr.textContent = 'The app has not come back yet. Check pm2 logs and hub/data/deploy.log on the server.';
+    }
+  });
 
   // ---------- boot ----------
   (async () => {

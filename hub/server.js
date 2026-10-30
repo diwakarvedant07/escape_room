@@ -6,6 +6,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { spawn } = require('child_process');
 
 const ROOT = __dirname;
 
@@ -37,6 +38,9 @@ const COOKIE_SECURE = /^(1|true|yes)$/i.test(env.COOKIE_SECURE || '');
 const DATA_FILE = path.resolve(ROOT, env.DATA_FILE || 'data/results.json');
 const COOKIE = 'hub_session';
 const SESSION_DAYS = 7;
+const DEPLOY_SCRIPT = path.resolve(ROOT, env.DEPLOY_SCRIPT || '../deploy.sh');
+const DEPLOY_LOG = path.join(path.dirname(DATA_FILE), 'deploy.log');
+const BOOTED_AT = new Date().toISOString();
 
 // A puzzle is either one file ("file") or a folder ("dir" + entry "file" + "allow"ed sub-folders).
 const PUZZLES = JSON.parse(fs.readFileSync(path.join(ROOT, 'puzzles.json'), 'utf8')).map((p) => ({
@@ -189,6 +193,34 @@ function finishTeam(t) {
   }
 }
 
+// ---------- deploy ----------
+// Runs deploy.sh (git pull + pm2 restart). If pm2 restarts this app, the server dies
+// mid-request and the browser waits for it to come back via api/health.
+let deploying = false;
+function runDeploy() {
+  return new Promise((resolve) => {
+    let out = '';
+    const log = (s) => {
+      out += s;
+      fs.promises.mkdir(path.dirname(DEPLOY_LOG), { recursive: true })
+        .then(() => fs.promises.appendFile(DEPLOY_LOG, s))
+        .catch(() => {});
+    };
+    let child;
+    try {
+      const childEnv = Object.assign({}, process.env);
+      for (const k of ['DEPLOY_BRANCH', 'PM2_APP']) if (env[k]) childEnv[k] = env[k];
+      child = spawn('bash', [DEPLOY_SCRIPT], { cwd: path.dirname(DEPLOY_SCRIPT), env: childEnv, detached: true });
+    } catch (e) {
+      return resolve({ code: -1, output: 'Could not start the deploy script: ' + e.message });
+    }
+    child.stdout.on('data', (d) => log(d.toString()));
+    child.stderr.on('data', (d) => log(d.toString()));
+    child.on('error', (e) => resolve({ code: -1, output: out + '\nCould not start the deploy script: ' + e.message }));
+    child.on('close', (code) => resolve({ code, output: out }));
+  });
+}
+
 // ---------- static ----------
 const PUBLIC = path.join(ROOT, 'public');
 function serveFile(res, file, extraHeaders = {}) {
@@ -266,6 +298,37 @@ async function api(req, res, route) {
     const k = name.toLowerCase();
     if (!db.teams[k]) { db.teams[k] = { name, createdAt: now(), finishedAt: null, puzzles: {} }; await persist(); }
     return json(res, 200, teamView(k), { 'Set-Cookie': cookieHeader(makeToken(k), SESSION_DAYS * 86400) });
+  }
+
+  if (route === 'health' && req.method === 'GET') return json(res, 200, { ok: true, bootedAt: BOOTED_AT });
+
+  if (route === 'deploy' && req.method === 'POST') {
+    const ip = clientIp(req);
+    if (throttled(ip)) return json(res, 429, { error: 'Too many wrong attempts. Wait a few minutes and try again.' });
+    const body = await readBody(req);
+    if (!passwordOk(body.password || '')) { noteFailure(ip); return json(res, 401, { error: 'Wrong password.' }); }
+    if (!fs.existsSync(DEPLOY_SCRIPT)) return json(res, 500, { error: 'Deploy script not found: ' + DEPLOY_SCRIPT });
+    if (deploying) return json(res, 409, { error: 'A deploy is already running.' });
+    // Each click sends a one-time id. The browser may re-send the request after pm2 kills
+    // this process; the id (kept on disk across the restart) stops that from deploying twice.
+    const id = String(body.id || '');
+    if (!/^[A-Za-z0-9-]{8,64}$/.test(id)) return json(res, 400, { error: 'Missing deploy id.' });
+    const idFile = path.join(path.dirname(DATA_FILE), 'deploy.last');
+    let lastId = '';
+    try { lastId = fs.readFileSync(idFile, 'utf8').trim(); } catch (_) {}
+    if (lastId === id) return json(res, 409, { error: 'This deploy was already run.', bootedAt: BOOTED_AT });
+    fs.mkdirSync(path.dirname(idFile), { recursive: true });
+    fs.writeFileSync(idFile, id);
+    deploying = true;
+    console.log('Deploy started from ' + ip);
+    const result = await runDeploy().finally(() => { deploying = false; });
+    // Reaching here means this process was not restarted (the script failed, or pm2 restarted another app).
+    return json(res, result.code === 0 ? 200 : 500, {
+      ok: result.code === 0,
+      error: result.code === 0 ? undefined : 'Deploy failed (exit code ' + result.code + ').',
+      output: result.output.slice(-6000),
+      bootedAt: BOOTED_AT,
+    });
   }
 
   if (route === 'logout' && req.method === 'POST') {

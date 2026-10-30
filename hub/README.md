@@ -28,6 +28,18 @@ To keep it running on a server, use pm2 (`pm2 start hub/server.js --name escape-
 | `SESSION_SECRET` | Signs login cookies. If empty, teams must sign in again after a restart. |
 | `COOKIE_SECURE` | `true` when served over HTTPS. |
 | `DATA_FILE` | Results file, default `data/results.json` (inside `hub/`). |
+| `DEPLOY_BRANCH` | Branch the Deploy button pulls. Default `master`. |
+| `PM2_APP` | pm2 id or name the Deploy button restarts. Default `10`. |
+
+## Deploying updates
+
+`deploy.sh` (in the top folder) runs `git pull origin master` and then `pm2 restart 10`. Run it on the server with `bash deploy.sh`, or use the **Deploy update** link under the sign-in form. It asks for the same `TEAM_PASSWORD`, runs the script, waits for the app to come back and reloads the page. If the pull fails, the dialog shows the git output and nothing is restarted.
+
+- Change the branch or pm2 app with `DEPLOY_BRANCH` / `PM2_APP` in `hub/.env` (defaults `master` / `10`). `PM2_APP` must be this app's pm2 id or name; check with `pm2 list`.
+- The server's working copy must be able to `git pull` without prompting (a deploy key or saved credentials) and must have no local edits to tracked files.
+- Every run is appended to `hub/data/deploy.log`.
+- Wrong passwords count toward the same sign-in throttle.
+- Anyone who knows the password can trigger a deploy. Teams type it on their devices to sign in, so change it if you don't want them to have that.
 
 ## nginx
 
