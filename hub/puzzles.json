@@ -25,6 +25,7 @@
   },
   {
     "id": 5,
+    "hidden": true,
     "title": "Picture This",
     "blurb": "Case File: Orbit Financial. Reconstruct a ₹4.2 crore fraud from ten office scenes and the logs.",
     "dir": "../puzzle 5/picture-this",

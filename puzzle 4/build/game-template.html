@@ -319,6 +319,17 @@
   const INCIDENTS_PER_GAME = 2;
   const STORE_KEY = 'cyberTimeline.v1';
 
+  // Team from the Escape Hub (games/4/?team=<name>); '' when played standalone.
+  // Team names are case-insensitive, like in the hub.
+  const TEAM = (function () {
+    try {
+      const t = (new URLSearchParams(location.search).get('team') || '').trim();
+      return /^[A-Za-z0-9_-]{2,24}$/.test(t) ? t : '';
+    } catch (e) { return ''; }
+  })();
+  const TEAM_KEY = TEAM.toLowerCase();
+  const HINTS_KEY = 'cyberTimeline.hints.' + TEAM_KEY;
+
   // ===== Data (generated from the Puzzle 4 doc by build/build-game.js; do not edit by hand) =====
   const DATA = /*__GAME_DATA__*/null;
 
@@ -414,6 +425,17 @@
   let lastPair = null;
   const views = {};   // per round: { tab, panel, list, items: {id: li}, ... }
 
+  // A team's hint tally lives in localStorage so Restart, Play again, a new tab or a refresh
+  // can never lower it. Standalone play keeps the tally in the saved game only.
+  function readTeamHints() {
+    if (!TEAM) return 0;
+    try { const v = parseInt(localStorage.getItem(HINTS_KEY), 10); return v > 0 ? v : 0; } catch (e) { return 0; }
+  }
+  function writeTeamHints(v) {
+    if (!TEAM) return;
+    try { localStorage.setItem(HINTS_KEY, String(v)); } catch (e) { /* storage unavailable */ }
+  }
+
   function save() {
     try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ state, lastPair })); } catch (e) { /* storage unavailable */ }
   }
@@ -425,21 +447,26 @@
       lastPair = Array.isArray(obj.lastPair) ? obj.lastPair : null;
       const s = obj.state;
       if (!s || !Array.isArray(s.rounds) || !s.rounds.length) return null;
+      // A game left on this device by a different team is discarded.
+      if ((s.team || '') !== TEAM_KEY) { lastPair = null; return null; }
       for (const n of s.rounds) {
         if (!ROUNDS[n] || !Array.isArray(s.orders[n])) return null;
         const want = ROUNDS[n].cards.map((c) => c.id).sort((a, b) => a - b).join(',');
         if (s.orders[n].slice().sort((a, b) => a - b).join(',') !== want) return null;
       }
       if (typeof s.hints !== 'number') s.hints = 0;
+      s.hints = Math.max(s.hints, readTeamHints());
       return s;
     } catch (e) { return null; }
   }
 
-  function newGame(rounds) {
+  // keepHints: Restart carries the hint count over; only Play again in standalone mode starts from 0.
+  function newGame(rounds, keepHints) {
     const orders = {}, solved = {}, checked = {};
     rounds.forEach((n) => { orders[n] = startingOrder(n); solved[n] = false; checked[n] = correctCount(n, orders[n]); });
     lastPair = rounds.slice();
-    state = { rounds: rounds.slice(), orders, solved, checked, moves: 0, hints: 0, active: rounds[0] };
+    const hints = Math.max(keepHints && state ? state.hints : 0, readTeamHints());
+    state = { team: TEAM_KEY, rounds: rounds.slice(), orders, solved, checked, moves: 0, hints, active: rounds[0] };
     save();
     showGame();
   }
@@ -540,7 +567,7 @@
       const reveal = el('div', 'reveal'); reveal.hidden = true;
       panel.appendChild(reveal);
       panels.appendChild(panel);
-      Object.assign(v, { panel, list, badge, reveal, under, hintBox, hintMsg });
+      Object.assign(v, { panel, list, badge, reveal, under, hintBox, hintBtn, hintMsg, hintShown: false });
       refreshArrows(n);
     });
   }
@@ -662,11 +689,17 @@
 
   // ===== Hints =====
   // A hint marks the cards that are right at this moment; it clears on the next move in that incident.
+  // While the marks are showing the button is disabled, so a repeat press never costs a hint.
   function showHint(n) {
-    if (state.solved[n]) return;
-    const v = views[n], ans = ROUNDS[n].answer.order, order = state.orders[n];
-    state.hints++;
+    const v = views[n];
+    if (state.solved[n] || v.hintShown) return;
+    const ans = ROUNDS[n].answer.order, order = state.orders[n];
+    state.hints = Math.max(state.hints, readTeamHints()) + 1;
+    writeTeamHints(state.hints);
     $('hints').textContent = state.hints;
+    v.hintShown = true;
+    v.hintBtn.disabled = true;
+    v.hintBtn.textContent = 'Hint showing';
     let right = 0;
     order.forEach((id, i) => {
       const ok = id === ans[i];
@@ -684,6 +717,9 @@
     const v = views[n];
     Object.values(v.items).forEach((li) => li.classList.remove('hint-right'));
     v.hintMsg.textContent = '';
+    v.hintShown = false;
+    v.hintBtn.disabled = false;
+    v.hintBtn.textContent = 'Show cards in the right place';
   }
 
   function commitMove(n, order) {
@@ -795,7 +831,7 @@
     save();
     if (fresh) {
       reportToHub({
-        status: 'pass', hints: state.hints, durationSec: Math.round((state.finishedAt - state.startedAt) / 1000),
+        status: 'pass', hints: Math.max(state.hints, readTeamHints()),
         details: { moves: state.moves, incidents: state.rounds.map((n) => ROUNDS[n].title) }
       });
       openFinish();
@@ -824,11 +860,15 @@
   function playAgain() {
     $('finish').hidden = true;
     try {
-      if (new URLSearchParams(location.search).has('rounds')) {
-        history.replaceState(null, '', location.pathname + location.hash);
+      // Drop the forced ?rounds= but keep everything else (notably ?team=).
+      const q = new URLSearchParams(location.search);
+      if (q.has('rounds')) {
+        q.delete('rounds');
+        const qs = q.toString();
+        history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
       }
     } catch (e) { /* ignore */ }
-    newGame(pickRounds(lastPair));
+    newGame(pickRounds(lastPair), false);
   }
 
   function renderStats() {
@@ -967,11 +1007,11 @@
   // ===== Wiring =====
   $('startBtn').addEventListener('click', () => {
     const forced = forcedRounds();
-    newGame(forced || pickRounds(lastPair));
+    newGame(forced || pickRounds(lastPair), false);
   });
   $('restartBtn').addEventListener('click', () => {
-    if (window.confirm('Restart? Both incidents will be reshuffled and your moves and hints reset.')) {
-      newGame(state.rounds);
+    if (window.confirm('Restart? Both incidents will be reshuffled and your moves reset. Hints already taken stay counted.')) {
+      newGame(state.rounds, true);
       announce('Game restarted.');
     }
   });

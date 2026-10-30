@@ -106,15 +106,6 @@
   h1:focus { outline: none; }
   .lede { margin: 10px 0 0; color: var(--muted); max-width: 62ch; }
   .lede strong { color: var(--text); font-weight: 600; }
-  .notice {
-    margin: 14px 0 0;
-    padding: 10px 12px;
-    border: 1px solid var(--amber);
-    border-radius: 8px;
-    color: var(--text);
-    font-size: 14px;
-  }
-  .notice code { font-family: var(--mono); font-size: 13px; }
 
   /* ---------- Tier board ---------- */
   .tiers {
@@ -202,7 +193,7 @@
     display: flex; flex-direction: column; gap: 2px;
     width: 100%;
     margin: 0;
-    padding: 9px 10px 6px;
+    padding: 9px 10px;
     border: 0;
     border-radius: 6px 6px 0 0;
     background: none;
@@ -214,19 +205,6 @@
   .card-meta { font: 500 12px/1.3 var(--mono); color: var(--muted); }
   .card-teaser { margin-top: 4px; font-size: 13px; line-height: 1.35; color: var(--muted); }
   .tier .card-teaser { display: none; }
-  .clip-btn {
-    align-self: flex-start;
-    margin: 0 10px 9px;
-    padding: 4px 8px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--accent);
-    font: 600 12px/1.2 var(--mono);
-    cursor: pointer;
-    touch-action: manipulation;
-  }
-  .clip-btn:hover { border-color: var(--accent); }
   .card.is-selected {
     outline: 3px solid var(--ring);
     outline-offset: 1px;
@@ -299,7 +277,7 @@
   }
   .wl-row {
     display: grid;
-    grid-template-columns: 112px minmax(0, 1fr) auto;
+    grid-template-columns: 112px minmax(0, 1fr);
     gap: 6px 12px;
     align-items: start;
     padding: 12px;
@@ -318,12 +296,6 @@
   .wl-title { font: 700 15px/1.3 var(--mono); overflow-wrap: anywhere; }
   .wl-meta { display: block; font: 500 12px/1.4 var(--mono); color: var(--muted); }
   .wl-why { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
-  .wl-clip {
-    color: var(--accent);
-    font: 600 13px/1.3 var(--mono);
-    white-space: nowrap;
-    text-underline-offset: 3px;
-  }
   .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
   .copy-status { min-height: 1.5em; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
   .copy-fallback textarea {
@@ -340,41 +312,6 @@
   }
   .footer { padding: 24px 0 28px; font: 12px/1.4 var(--mono); color: var(--muted); }
 
-  /* ---------- Clip modal ---------- */
-  dialog.clip {
-    width: min(760px, calc(100vw - 32px));
-    max-height: calc(100vh - 32px);
-    padding: 0;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface);
-    color: var(--text);
-  }
-  dialog.clip::backdrop { background: rgba(0, 0, 0, .7); }
-  .clip-inner { padding: 14px; }
-  .clip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-  .clip-head h2 { margin: 0; font: 700 17px/1.3 var(--mono); overflow-wrap: anywhere; }
-  .clip-close {
-    flex: none;
-    padding: 6px 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface-2);
-    font: 600 13px/1.2 var(--mono);
-    cursor: pointer;
-  }
-  .clip-frame {
-    position: relative;
-    margin-top: 12px;
-    aspect-ratio: 16 / 9;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #000;
-  }
-  .clip-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-  .clip-foot { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
-  .clip-foot a { color: var(--accent); font-weight: 600; }
-
   /* ---------- Narrow screens ---------- */
   @media (max-width: 560px) {
     .tier { grid-template-columns: 78px minmax(0, 1fr); }
@@ -383,12 +320,10 @@
     .tier-sub { font-size: 10px; }
     .drop { gap: 6px; padding: 6px; }
     .card, .pool .card { flex: 0 0 calc(50% - 3px); }
-    .card-main { padding: 8px 8px 5px; }
+    .card-main { padding: 8px; }
     .card-title { font-size: 13px; }
-    .clip-btn { margin: 0 6px 7px; padding: 4px 6px; font-size: 11px; }
     .submit-hint { font-size: 13px; }
-    .wl-row { grid-template-columns: minmax(0, 1fr) auto; }
-    .wl-row .pill { grid-column: 1 / -1; }
+    .wl-row { grid-template-columns: minmax(0, 1fr); }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -401,8 +336,7 @@
   <header>
     <p class="eyebrow">Escape the Breach · Game 7 of 7</p>
     <h1 id="mainHead" tabindex="-1">Hollywood Hacked<span class="cursor" aria-hidden="true">_</span></h1>
-    <p class="lede" id="lede">Rank each scene by how realistic the hacking is. <strong>There are no wrong answers.</strong> Drag a card onto a tier, or tap a card and then tap a tier. Haven't seen it? Watch the clip.</p>
-    <p class="notice" id="fileNotice" hidden>Clips need the page served over http or https. Opened from a file, YouTube usually shows a player error. Run <code>python3 -m http.server</code> in this folder and open <code>http://localhost:8000</code>.</p>
+    <p class="lede" id="lede">Rank each scene by how realistic the hacking is. <strong>There are no wrong answers.</strong> Drag a card onto a tier, or tap a card and then tap a tier.</p>
   </header>
 
   <main id="boardView">
@@ -449,17 +383,6 @@
   <footer class="footer">Escape the Breach · Final game</footer>
 </div>
 
-<dialog class="clip" id="clipDialog" aria-labelledby="clipTitle">
-  <div class="clip-inner">
-    <div class="clip-head">
-      <h2 id="clipTitle"></h2>
-      <button type="button" class="clip-close" id="clipClose">Close</button>
-    </div>
-    <div class="clip-frame" id="clipFrame"></div>
-    <p class="clip-foot"><span id="clipRange"></span> Video not playing? <a id="clipLink" href="#" target="_blank" rel="noopener">Open it on YouTube</a>.</p>
-  </div>
-</dialog>
-
 <div class="sr-only" id="live" aria-live="polite"></div>
 
 <script>
@@ -468,13 +391,6 @@
 // needs to change. Keep tier ids unique and title ids unique.
 // =====================================================================
 const CONFIG = {
-  // true: "Watch the clip" opens the in-game YouTube modal.
-  // false: it opens the YouTube watch page in a new tab (for sandboxes that block iframes).
-  EMBED: true,
-
-  // Every clip stops this many seconds after its start (YouTube end = start + CLIP_SECONDS).
-  CLIP_SECONDS: 25,
-
   // Fixed order, top to bottom. color is one of: green, blue, amber, red.
   TIERS: [
     { id: 'S', name: 'S Tier',      subtitle: 'Root Access', color: 'green', meaning: 'Realistic hacking. Every security professional should watch it.' },
@@ -483,55 +399,38 @@ const CONFIG = {
     { id: 'X', name: 'Recycle Bin', subtitle: 'rm -rf',      color: 'red',   meaning: 'Pure Hollywood hacking. Watch it only to laugh at it.' }
   ],
 
-  // start = second where the cyber moment begins. None of these ids or start times
-  // have been checked by a human yet.
+  // why = the one-line note shown on the closing-screen watchlist.
   TITLES: [
     { id: 'mr-robot', title: 'Mr. Robot', year: '2015–19', type: 'Series',
       teaser: 'A cybersecurity engineer by day, a vigilante hacker by night',
-      youtube: 'zhvyK8q2Qtg',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'Real tools and attack chains, with security people checking every scene.' },
 
     { id: 'wargames', title: 'WarGames', year: '1983', type: 'Movie',
       teaser: 'A teenager almost starts World War III from his bedroom',
-      youtube: 'O77v7lVKgNU',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'Dated modem tricks, but war dialing and weak passwords were real.' },
 
     { id: 'sneakers', title: 'Sneakers', year: '1992', type: 'Movie',
       teaser: 'A team of security testers gets pulled into a spy plot',
-      youtube: 'F5bAa6gFvLs',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'Pen testing and social engineering treated like real work.' },
 
     { id: 'hackers', title: 'Hackers', year: '1995', type: 'Movie',
       teaser: 'Rollerblades, neon and a lot of 3D graphics',
-      youtube: 'Bmz67ErIRa4',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'The subculture rings true. Flying through a 3D city to hack a server does not.' },
 
     { id: 'swordfish', title: 'Swordfish', year: '2001', type: 'Movie',
       teaser: 'Hacking under pressure, in the most literal Hollywood sense',
-      youtube: 'zfy5dFhw3ik',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'A key cracked in a minute with a gun to the head and a glowing cube on screen.' },
 
     { id: 'who-am-i', title: 'Who Am I', year: '2014', type: 'Movie (German)',
       teaser: 'A shy hacker joins a group of hacktivists and things get complicated',
-      youtube: 'xiSYI7zdF5I',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'Understands that people are the weakest link, so social engineering does most of the work.' },
 
     { id: 'jurassic-park', title: 'Jurassic Park', year: '1993', type: 'Movie',
       teaser: '"It\'s a Unix system! I know this!"',
-      youtube: 'dFUlAQZB9Ng',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'The file browser was real software. Calling it hacking is the stretch.' },
 
     { id: 'ncis', title: 'NCIS (the famous keyboard scene)', year: '2004', type: 'Series episode',
       teaser: 'Two agents, one keyboard, four hands',
-      youtube: 'msX4oAXpvUE',
-      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
       why: 'Two people on one keyboard to stop an intrusion. The shorthand for bad TV hacking.' }
   ]
 };
@@ -558,7 +457,6 @@ const CONFIG = {
   const submitBtn = $('submitBtn');
   const submitHint = $('submitHint');
   const live = $('live');
-  const dialog = $('clipDialog');
 
   const cardEls = new Map();   // title id -> .card element
   const zoneEls = new Map();   // zone id -> .zone element
@@ -568,20 +466,8 @@ const CONFIG = {
   let selectedId = null;
   let drag = null;
   let suppressClickUntil = 0;
-  let clipOpener = null;
 
   const tierColor = tier => `var(--${tier.color})`;
-  const startOf = t => Math.max(0, Math.floor(Number(t.start) || 0));
-  const fmtTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  const watchUrl = t => `https://www.youtube.com/watch?v=${encodeURIComponent(t.youtube)}&t=${startOf(t)}s`;
-  const embedUrl = t => {
-    const s = startOf(t);
-    const params = new URLSearchParams({
-      autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1,
-      start: s, end: s + CONFIG.CLIP_SECONDS
-    });
-    return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.youtube)}?${params}`;
-  };
 
   function el(tag, attrs, children) {
     const node = document.createElement(tag);
@@ -638,11 +524,7 @@ const CONFIG = {
         el('span', { class: 'card-teaser', text: t.teaser }),
         el('span', { class: 'sr-only card-where' })
       ]);
-      const clip = el('button', {
-        type: 'button', class: 'clip-btn', 'data-clip': t.id,
-        'aria-label': `Watch the clip: ${t.title}`, text: '▶ Watch the clip'
-      });
-      const card = el('div', { class: 'card', 'data-id': t.id, title: t.teaser }, [main, clip]);
+      const card = el('div', { class: 'card', 'data-id': t.id, title: t.teaser }, [main]);
       cardEls.set(t.id, card);
     });
   }
@@ -720,9 +602,6 @@ const CONFIG = {
   tiersEl.parentElement.addEventListener('click', e => {
     if (Date.now() < suppressClickUntil) return;
 
-    const clipBtn = e.target.closest('.clip-btn');
-    if (clipBtn) { openClip(clipBtn.dataset.clip, clipBtn); return; }
-
     const main = e.target.closest('.card-main');
     if (main) { toggleSelect(main.parentElement.dataset.id); return; }
 
@@ -755,7 +634,6 @@ const CONFIG = {
   // ---------- Pointer drag (mouse + touch share this path) ----------
   boardView.addEventListener('pointerdown', e => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
-    if (e.target.closest('.clip-btn')) return;           // clip links never start a drag
     const card = e.target.closest('.card');
     if (!card || drag) return;
     drag = { id: card.dataset.id, card, pid: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, active: false };
@@ -845,39 +723,6 @@ const CONFIG = {
     suppressClickUntil = Date.now() + 120;   // the click that follows a drop is not a tap
   }
 
-  // ---------- Clip modal ----------
-  function openClip(id, opener) {
-    const t = titleById.get(id);
-    if (!t) return;
-    if (!CONFIG.EMBED) {
-      window.open(watchUrl(t), '_blank', 'noopener');
-      return;
-    }
-    clipOpener = opener || null;
-    const s = startOf(t);
-    $('clipTitle').textContent = t.title;
-    $('clipRange').textContent = `Plays ${CONFIG.CLIP_SECONDS} seconds from ${fmtTime(s)}.`;
-    $('clipLink').href = watchUrl(t);
-    const iframe = el('iframe', {
-      src: embedUrl(t),
-      title: `${t.title} clip`,
-      allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen',
-      allowfullscreen: '',
-      referrerpolicy: 'strict-origin-when-cross-origin'
-    });
-    $('clipFrame').replaceChildren(iframe);
-    dialog.showModal();
-    $('clipClose').focus();
-  }
-
-  $('clipClose').addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });  // backdrop
-  dialog.addEventListener('close', () => {
-    $('clipFrame').replaceChildren();   // removing the iframe stops playback
-    if (clipOpener && document.contains(clipOpener)) clipOpener.focus();
-    clipOpener = null;
-  });
-
   // ---------- Submit / closing screen ----------
   function orderedWatchlist() {
     return TIER_IDS.flatMap(z => zones[z].map(id => ({ tier: tierById.get(z), t: titleById.get(id) })));
@@ -887,28 +732,16 @@ const CONFIG = {
     const list = $('watchlist');
     list.replaceChildren();
     orderedWatchlist().forEach(({ tier, t }) => {
-      const link = el('a', {
-        class: 'wl-clip', href: watchUrl(t), target: '_blank', rel: 'noopener',
-        'data-clip': t.id, 'aria-label': `Watch the clip: ${t.title}`, text: '▶ Clip'
-      });
       list.appendChild(el('li', { class: 'wl-row' }, [
         el('span', { class: 'pill', style: `--tc: ${tierColor(tier)}`, text: tier.name }),
         el('div', {}, [
           el('div', { class: 'wl-title', text: t.title }),
           el('span', { class: 'wl-meta', text: `${t.year} · ${t.type}` }),
           el('p', { class: 'wl-why', text: t.why })
-        ]),
-        link
+        ])
       ]));
     });
   }
-
-  $('watchlist').addEventListener('click', e => {
-    const link = e.target.closest('.wl-clip');
-    if (!link || !CONFIG.EMBED) return;      // with EMBED off the link opens YouTube itself
-    e.preventDefault();
-    openClip(link.dataset.clip, link);
-  });
 
   // Escape Hub bridge (no-op when played standalone)
   const startedAt = Date.now();
@@ -975,7 +808,6 @@ const CONFIG = {
 
   // ---------- Play again ----------
   $('againBtn').addEventListener('click', () => {
-    if (dialog.open) dialog.close();
     resetState();
     $('watchlist').replaceChildren();
     $('copyStatus').textContent = '';
@@ -991,17 +823,12 @@ const CONFIG = {
   });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !dialog.open && selectedId && !(e.target.closest && e.target.closest('.card-main'))) {
+    if (e.key === 'Escape' && selectedId && !(e.target.closest && e.target.closest('.card-main'))) {
       toggleSelect(selectedId);
     }
   });
 
   // ---------- Init ----------
-  if (location.protocol === 'file:') $('fileNotice').hidden = false;
-
-  const todo = CONFIG.TITLES.filter(t => startOf(t) === 0).map(t => t.title);
-  if (todo.length) console.warn(`[Hollywood Hacked] TODO: clip start is still 0 for: ${todo.join(', ')}`);
-
   buildTiers();
   buildCards();
   resetState();

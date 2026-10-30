@@ -149,11 +149,10 @@
             const label = st === 'in_progress' ? 'Continue' : locked ? 'Done' : 'Play';
             return `
               <article class="card ${p.playable ? '' : 'soon'}">
-                <div class="row" style="justify-content:space-between">
-                  <span class="num">PUZZLE ${p.id}</span>
+                <div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:nowrap">
+                  <h3>${esc(p.title)}</h3>
                   <span class="chip ${st}">${STATUS[st]}</span>
                 </div>
-                <h3>${esc(p.title)}</h3>
                 <p>${esc(p.playable ? p.blurb : 'This puzzle is not available yet.')}</p>
                 <div class="foot">
                   <span class="stats">${esc(resultLine(p.result))}</span>
@@ -185,7 +184,7 @@
     try { state = await api(`puzzles/${id}/start`, {}); }
     catch (e) { return handleError(e); }
     playing = id;
-    document.getElementById('playerTitle').textContent = `Puzzle ${id}: ${p.title}`;
+    document.getElementById('playerTitle').textContent = p.title;
     document.getElementById('playerTeam').textContent = `Team ${state.team}`;
     document.title = `${p.title} · Team ${state.team}`;
     recorded.hidden = true;
@@ -262,11 +261,11 @@
           <table>
             <thead><tr><th>#</th><th>Puzzle</th><th>Result</th><th class="n">Score</th><th class="n">Time</th><th class="n">Hints</th><th class="n">Attempts</th></tr></thead>
             <tbody>
-              ${state.puzzles.map((p) => {
+              ${state.puzzles.map((p, i) => {
                 const r = p.result || {};
                 const st = statusOf(p);
                 return `<tr>
-                  <td class="mono">${p.id}</td>
+                  <td class="mono">${i + 1}</td>
                   <td>${esc(p.title)}${detailLine(p.id, r)}</td>
                   <td><span class="chip ${st}">${STATUS[st]}</span></td>
                   <td class="n">${r.score != null ? r.score + (r.maxScore != null ? ' / ' + r.maxScore : '') : '—'}</td>

@@ -43,7 +43,8 @@ const DEPLOY_LOG = path.join(path.dirname(DATA_FILE), 'deploy.log');
 const BOOTED_AT = new Date().toISOString();
 
 // A puzzle is either one file ("file") or a folder ("dir" + entry "file" + "allow"ed sub-folders).
-const PUZZLES = JSON.parse(fs.readFileSync(path.join(ROOT, 'puzzles.json'), 'utf8')).map((p) => ({
+// "hidden": true removes a puzzle from the hub entirely (not listed, not served, not counted).
+const PUZZLES = JSON.parse(fs.readFileSync(path.join(ROOT, 'puzzles.json'), 'utf8')).filter((p) => !p.hidden).map((p) => ({
   ...p,
   playable: !!p.file,
   absDir: p.dir ? path.resolve(ROOT, p.dir) : null,

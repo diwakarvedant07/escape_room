@@ -98,21 +98,33 @@ function toast(text, kind = 'info') {
 }
 
 // ---------------------------------------------------------------- scene visuals
-// Final art drops in at the path in scenes.json; until then a labelled placeholder renders.
+// Final art (scene.image, a .jpg) wins when present; otherwise the bundled drawing
+// (scene.fallback, an .svg) is used. Hotspot labels are only drawn in authoring mode.
 const imageOk = {};
+const imageSrc = {};
+
+function loads(src) {
+  return new Promise((resolve) => {
+    if (!src) { resolve(false); return; }
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+}
 
 function probeImages(scenes) {
-  return Promise.all(scenes.map((scene) => new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => { imageOk[scene.id] = true; resolve(); };
-    img.onerror = () => { imageOk[scene.id] = false; resolve(); };
-    img.src = scene.image;
-  })));
+  return Promise.all(scenes.map(async (scene) => {
+    for (const src of [scene.image, scene.fallback]) {
+      if (await loads(src)) { imageSrc[scene.id] = src; break; }
+    }
+    imageOk[scene.id] = !!imageSrc[scene.id];
+  }));
 }
 
 function sceneVisual(scene, { thumb = false, spots = [] } = {}) {
   if (imageOk[scene.id]) {
-    return h('img', { class: 'scene-img', src: scene.image, alt: thumb ? '' : `Scene ${scene.id}: ${scene.title}`, draggable: 'false' });
+    return h('img', { class: 'scene-img', src: imageSrc[scene.id], alt: thumb ? '' : `Scene ${scene.id}: ${scene.title}`, draggable: 'false' });
   }
   const label = `Scene ${scene.id} — ${scene.title}`;
   if (thumb) {
