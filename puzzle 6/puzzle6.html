@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Puzzle 6: Log Detective</title>
+<style>
+/* =========================================================
+   THEME — tweak colours and sizes here
+   ========================================================= */
+:root {
+  --bg: #0a0f0a;
+  --panel: #0f1712;
+  --panel-2: #142019;
+  --border: #24402e;
+  --text: #c8f7d2;
+  --muted: #8fb89a;
+  --green: #4dff88;
+  --red: #ff6b6b;
+  --amber: #ffbf47;
+  --cyan: #5fd7ff;
+  --focus: #ffe066;
+  --font-mono: "Cascadia Mono", "Consolas", "Menlo", "DejaVu Sans Mono", monospace;
+  --base-size: 17px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--base-size);
+  line-height: 1.45;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+button { font-family: inherit; font-size: inherit; cursor: pointer; }
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+header {
+  padding: 14px 20px 10px;
+  border-bottom: 2px solid var(--border);
+  background: linear-gradient(180deg, #0f1f14, var(--bg));
+}
+.banner-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; justify-content: space-between; }
+h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 3.2vw, 2.4rem);
+  color: var(--green);
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 8px rgba(77, 255, 136, 0.45);
+}
+.cursor { display: inline-block; width: 0.6em; height: 1em; background: var(--green); vertical-align: -0.12em; margin-left: 4px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+.timer-box { display: flex; align-items: center; gap: 12px; }
+#timer {
+  font-size: 1.8rem; font-weight: bold; color: var(--amber);
+  min-width: 5ch; text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+#timer.urgent { color: var(--red); animation: blink 1s steps(1) infinite; }
+#timer.up { color: var(--red); }
+.btn {
+  background: var(--panel-2); color: var(--green);
+  border: 2px solid var(--green); border-radius: 4px;
+  padding: 8px 16px; font-weight: bold;
+}
+.btn:hover { background: #1c3324; }
+.btn[disabled] { opacity: 0.5; cursor: default; }
+#timesUp { color: var(--red); font-weight: bold; }
+
+.story {
+  margin: 12px 0 0; padding: 10px 14px;
+  border-left: 4px solid var(--amber);
+  background: var(--panel); color: var(--text);
+  max-width: 1200px;
+}
+
+/* =========================================================
+   MAIN LAYOUT — log beside report on wide screens
+   ========================================================= */
+main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 16px;
+  padding: 16px 20px;
+  align-items: start;
+}
+@media (max-width: 1100px) {
+  main { grid-template-columns: minmax(0, 1fr); }
+}
+.panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+.panel h2 { margin: 0 0 10px; font-size: 1.15rem; color: var(--green); letter-spacing: 0.08em; }
+
+/* ---------- Log controls ---------- */
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.filter-btn {
+  background: var(--panel-2); color: var(--text);
+  border: 2px solid var(--accent, var(--border)); border-radius: 4px;
+  padding: 5px 10px; font-size: 0.9rem;
+}
+.filter-btn[aria-pressed="true"] { background: var(--accent, var(--green)); color: #071008; font-weight: bold; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; margin-bottom: 10px; }
+.controls label { color: var(--muted); }
+#search {
+  background: #050805; color: var(--text);
+  border: 2px solid var(--border); border-radius: 4px;
+  padding: 6px 10px; font-family: inherit; font-size: inherit; min-width: 240px; flex: 1;
+}
+.sort-group { display: inline-flex; border: 2px solid var(--border); border-radius: 4px; overflow: hidden; }
+.sort-group button { background: var(--panel-2); color: var(--text); border: 0; padding: 5px 12px; }
+.sort-group button[aria-pressed="true"] { background: var(--green); color: #071008; font-weight: bold; }
+#count { color: var(--amber); font-weight: bold; }
+
+/* ---------- Log table ---------- */
+.table-wrap { max-height: 68vh; overflow: auto; border: 1px solid var(--border); border-radius: 4px; background: #050805; }
+table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: #12261a; color: var(--green);
+  text-align: left; padding: 7px 8px; border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+tbody td { padding: 5px 8px; border-bottom: 1px solid #13221a; vertical-align: top; }
+tbody tr { border-left: 4px solid var(--accent, transparent); }
+tbody tr:hover { background: #0d1a12; }
+td.c-id, td.c-time, td.c-ip { white-space: nowrap; color: var(--muted); }
+td.c-time { color: var(--text); }
+td.c-user { white-space: nowrap; color: var(--accent, var(--text)); font-weight: bold; }
+td.c-event { color: var(--text); word-break: break-word; }
+td.c-result { font-weight: bold; }
+.r-success { color: var(--green); }
+.r-failed  { color: var(--red); }
+.r-warn    { color: var(--amber); }
+.r-other   { color: var(--cyan); }
+.empty { padding: 16px; color: var(--muted); text-align: center; }
+
+/* =========================================================
+   INCIDENT REPORT FORM
+   ========================================================= */
+#report h2 { font-size: 1.35rem; color: var(--amber); text-align: center; border-bottom: 2px dashed var(--border); padding-bottom: 8px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; color: var(--text); font-weight: bold; margin-bottom: 4px; }
+.input-row { display: flex; align-items: center; gap: 8px; }
+.field input {
+  flex: 1; width: 100%;
+  background: #050805; color: var(--text);
+  border: 2px solid var(--border); border-radius: 4px;
+  padding: 8px 10px; font-family: inherit; font-size: 1rem;
+}
+.field input::placeholder { color: #6f8f78; }
+.field.ok input { border-color: var(--green); }
+.field.bad input { border-color: var(--red); }
+.mark { width: 1.6em; font-size: 1.3rem; text-align: center; font-weight: bold; }
+.field.ok .mark { color: var(--green); }
+.field.bad .mark { color: var(--red); }
+.shake { animation: shake 0.45s; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(5px); }
+}
+#submitBtn { width: 100%; font-size: 1.1rem; padding: 10px; border-color: var(--amber); color: var(--amber); }
+#feedback { margin-top: 12px; min-height: 1.5em; }
+#feedback .score { font-weight: bold; color: var(--amber); }
+#feedback .rejected { color: var(--red); font-weight: bold; }
+#attempts { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+
+/* =========================================================
+   SUCCESS STATE
+   ========================================================= */
+#success { display: none; text-align: center; margin-top: 14px; }
+#success.show { display: block; }
+.case-closed {
+  font-size: 2rem; color: var(--green); font-weight: bold; letter-spacing: 0.1em;
+  text-shadow: 0 0 12px rgba(77, 255, 136, 0.7);
+  animation: pop 0.6s ease-out;
+}
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+.pw-label { color: var(--muted); margin-top: 10px; }
+#password {
+  margin: 6px auto 12px; padding: 14px 10px;
+  font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: bold; letter-spacing: 0.12em;
+  color: #071008; background: var(--green); border-radius: 6px;
+  word-break: break-all; user-select: all;
+}
+.debrief { text-align: left; border-top: 2px dashed var(--border); padding-top: 10px; }
+.debrief p { color: var(--amber); font-weight: bold; margin: 0 0 8px; }
+details summary { cursor: pointer; color: var(--green); font-weight: bold; padding: 4px 0; }
+details ul { padding-left: 1.2em; margin: 6px 0 0; }
+details li { margin-bottom: 6px; }
+details li b { color: var(--cyan); }
+
+/* Confetti (CSS animation; pieces are inserted on success) */
+#confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+#confetti i {
+  position: absolute; top: -20px; width: 10px; height: 16px; opacity: 0.95;
+  animation: fall var(--dur, 2.8s) ease-in var(--delay, 0s) forwards;
+}
+@keyframes fall {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx, 0), 110vh) rotate(var(--rot, 720deg)); opacity: 0.7; }
+}
+
+/* =========================================================
+   FACILITATOR PANEL (Ctrl+Shift+F)
+   ========================================================= */
+#facilitator {
+  position: fixed; right: 16px; bottom: 16px; z-index: 60;
+  background: #1b1405; border: 2px solid var(--amber); border-radius: 6px;
+  padding: 12px 16px; color: var(--amber); max-width: 360px;
+}
+#facilitator[hidden] { display: none; }
+#facilitator h3 { margin: 0 0 6px; font-size: 1rem; }
+#facilitator ol { margin: 0; padding-left: 1.3em; }
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+footer { text-align: center; color: var(--muted); padding: 10px; border-top: 1px solid var(--border); font-size: 0.9rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cursor, #timer.urgent, .shake, .case-closed, #confetti i { animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="banner-row">
+    <h1>PUZZLE 6: LOG DETECTIVE<span class="cursor" aria-hidden="true"></span></h1>
+    <div class="timer-box">
+      <span id="timesUp" role="status" aria-live="polite"></span>
+      <span id="timer" aria-label="Time remaining">15:00</span>
+      <button id="startBtn" class="btn" type="button">Start Investigation</button>
+    </div>
+  </div>
+  <p class="story">Fileserver-02 was breached overnight. The night-shift auth log is below. Eight users had a very strange night. One of those accounts was actually compromised. Split the users among your team, read each user's story, and find the attacker. Then fill in the incident report to unlock the password.</p>
+</header>
+
+<main>
+  <!-- ================= LOG VIEWER ================= -->
+  <section class="panel" aria-labelledby="logTitle">
+    <h2 id="logTitle">&gt; /var/log/auth.log — fileserver-02</h2>
+    <div class="filters" id="filters" role="group" aria-label="Filter log by user"></div>
+    <div class="controls">
+      <label for="search">Search:</label>
+      <input id="search" type="search" placeholder="user, IP, event, result..." autocomplete="off">
+      <span>Sort by:</span>
+      <div class="sort-group" role="group" aria-label="Sort order">
+        <button type="button" data-sort="time" aria-pressed="true">time</button>
+        <button type="button" data-sort="user" aria-pressed="false">user</button>
+      </div>
+      <span id="count" aria-live="polite"></span>
+    </div>
+    <div class="table-wrap" tabindex="0" aria-label="Auth log entries">
+      <table>
+        <thead>
+          <tr><th scope="col">ID</th><th scope="col">TIME</th><th scope="col">SOURCE IP</th><th scope="col">USER</th><th scope="col">EVENT</th><th scope="col">RESULT</th></tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= INCIDENT REPORT ================= -->
+  <section class="panel" id="report" aria-labelledby="reportTitle">
+    <h2 id="reportTitle">INCIDENT REPORT</h2>
+    <form id="reportForm" novalidate autocomplete="off">
+      <div class="field" data-key="account">
+        <label for="f-account">1. Compromised account</label>
+        <div class="input-row"><input id="f-account" type="text" spellcheck="false"><span class="mark" aria-hidden="true"></span></div>
+      </div>
+      <div class="field" data-key="ip">
+        <label for="f-ip">2. Attacker IP</label>
+        <div class="input-row"><input id="f-ip" type="text" spellcheck="false"><span class="mark" aria-hidden="true"></span></div>
+      </div>
+      <div class="field" data-key="time">
+        <label for="f-time">3. Time of successful break-in</label>
+        <div class="input-row"><input id="f-time" type="text" placeholder="HH:MM" spellcheck="false"><span class="mark" aria-hidden="true"></span></div>
+      </div>
+      <div class="field" data-key="file">
+        <label for="f-file">4. File stolen</label>
+        <div class="input-row"><input id="f-file" type="text" spellcheck="false"><span class="mark" aria-hidden="true"></span></div>
+      </div>
+      <div class="field" data-key="cover">
+        <label for="f-cover">5. Cover-up action</label>
+        <div class="input-row"><input id="f-cover" type="text" placeholder="What did the attacker do to hide it?" spellcheck="false"><span class="mark" aria-hidden="true"></span></div>
+      </div>
+      <button id="submitBtn" class="btn" type="submit">Submit Report</button>
+    </form>
+    <div id="feedback" role="status" aria-live="polite"></div>
+    <div id="attempts">Attempts: 0</div>
+    <div id="success" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer>Fileserver-02 | Night Shift Log | 29 Oct 2026</footer>
+
+<div id="confetti" aria-hidden="true"></div>
+<aside id="facilitator" hidden aria-label="Facilitator answers"></aside>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const TIME_LIMIT_MINUTES = 15;   // default; override with ?t=20 in the URL
+
+/* Escape Hub bridge (no-op when played standalone) */
+function reportToHub(r) {
+  try { if (window.parent !== window) window.parent.postMessage(Object.assign({ type: "escape-hub:result", puzzle: 6 }, r), "*"); } catch (_) {}
+}
+
+/* =========================================================
+   LOG DATA (embedded from puzzle6_server_auth_v3.log)
+   ========================================================= */
+const LOG = [
+  {"id":"01","time":"00:05:11","ip":"10.20.4.88","user":"chatur","event":"LOGIN","result":"SUCCESS"},
+  {"id":"02","time":"00:12:40","ip":"10.20.4.18","user":"sudo_sandeep","event":"LOGIN","result":"FAILED (wrong password)"},
+  {"id":"03","time":"00:12:58","ip":"10.20.4.18","user":"sudo_sandeep","event":"LOGIN (typed password into the username field)","result":"FAILED"},
+  {"id":"04","time":"00:13:20","ip":"10.20.4.18","user":"sudo_sandeep","event":"LOGIN","result":"SUCCESS (finally)"},
+  {"id":"05","time":"00:15:02","ip":"10.20.4.18","user":"sudo_sandeep","event":"CMD: sudo rm -rf /var/www/html/1.html","result":"SUCCESS"},
+  {"id":"06","time":"00:15:09","ip":"10.20.4.18","user":"sudo_sandeep","event":"CMD: sudo rm -rf /var/www/html/2.html","result":"SUCCESS"},
+  {"id":"07","time":"00:15:16","ip":"10.20.4.18","user":"sudo_sandeep","event":"CMD: sudo rm -rf /var/www/html/3.html","result":"SUCCESS"},
+  {"id":"08","time":"00:18:30","ip":"49.36.112.19","user":"raj_malhotra","event":"LOGIN","result":"SUCCESS"},
+  {"id":"09","time":"00:19:02","ip":"49.36.112.19","user":"raj_malhotra","event":"CMD: ping simran.local","result":"TIMEOUT (she did not turn around)"},
+  {"id":"10","time":"00:25:44","ip":"103.57.86.140","user":"gabbar_singh","event":"LOGIN","result":"SUCCESS"},
+  {"id":"11","time":"00:26:10","ip":"103.57.86.140","user":"gabbar_singh","event":"QUERY: SELECT COUNT(*) FROM employees WHERE status='present'","result":"2 ROWS (\"Kitne aadmi the?\")"},
+  {"id":"12","time":"00:26:48","ip":"103.57.86.140","user":"gabbar_singh","event":"QUERY: SELECT * FROM employees WHERE name IN ('Kalia','Sambha')","result":"2 ROWS (\"Tera kya hoga Kaaliya?\")"},
+  {"id":"13","time":"00:30:15","ip":"10.20.4.88","user":"chatur","event":"FILE_OPEN: Chamatkar_Speech_FINAL_v7.docx","result":"SUCCESS (rehearsed 14 times)"},
+  {"id":"14","time":"00:35:00","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"LOGIN","result":"SUCCESS"},
+  {"id":"15","time":"00:41:03","ip":"122.170.20.55","user":"jethalal_g","event":"LOGIN (password: Babitaji@123)","result":"FAILED"},
+  {"id":"16","time":"00:41:20","ip":"122.170.20.55","user":"jethalal_g","event":"LOGIN (password: Babitaji@1234)","result":"FAILED"},
+  {"id":"17","time":"00:41:35","ip":"122.170.20.55","user":"jethalal_g","event":"LOGIN (password: Babitaji@12345)","result":"FAILED"},
+  {"id":"18","time":"00:41:36","ip":"122.170.20.55","user":"jethalal_g","event":"ACCOUNT_LOCKED after 3 failed attempts","result":"LOCKED"},
+  {"id":"19","time":"00:45:20","ip":"157.32.200.11","user":"munna_bhai","event":"LOGIN","result":"SUCCESS"},
+  {"id":"20","time":"00:50:12","ip":"10.20.4.52","user":"gopi_bahu","event":"LOGIN","result":"SUCCESS"},
+  {"id":"21","time":"00:55:20","ip":"49.36.112.19","user":"raj_malhotra","event":"CMD: ping simran.local","result":"TIMEOUT (palat... still nothing)"},
+  {"id":"22","time":"00:58:10","ip":"122.170.20.55","user":"jethalal_g","event":"HELPDESK_TICKET: \"Ye kya ho raha hai?!\"","result":"OPEN"},
+  {"id":"23","time":"01:00:41","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"CRON_ADD: @every 25 days double_money.sh","result":"SUCCESS"},
+  {"id":"24","time":"01:02:09","ip":"185.220.14.77","user":"chatur","event":"LOGIN","result":"FAILED"},
+  {"id":"25","time":"01:05:30","ip":"10.20.4.52","user":"gopi_bahu","event":"CMD: ./wash_laptop.sh --detergent=Rin","result":"RUNNING"},
+  {"id":"26","time":"01:06:10","ip":"10.20.4.52","user":"gopi_bahu","event":"HARDWARE_ALERT: moisture detected on keyboard","result":"WARNING"},
+  {"id":"27","time":"01:10:44","ip":"10.20.4.18","user":"sudo_sandeep","event":"CMD: sudo rm -rf / var/www/html/4.html (stray space typed)","result":"SUCCESS (deleting /)"},
+  {"id":"28","time":"01:10:51","ip":"10.20.4.18","user":"sudo_sandeep","event":"ALERT: 14,203 files deleted in 6 seconds","result":"CRITICAL"},
+  {"id":"29","time":"01:11:30","ip":"10.20.4.18","user":"sudo_sandeep","event":"CMD: ls","result":"ERROR (ls: command not found, ls is gone)"},
+  {"id":"30","time":"01:12:15","ip":"10.20.4.18","user":"sudo_sandeep","event":"BROWSER: google.com/search?q=how+to+undo+rm+-rf","result":"HTTP 200"},
+  {"id":"31","time":"01:13:40","ip":"10.20.4.18","user":"sudo_sandeep","event":"BROWSER: google.com/search?q=is+my+job+safe+after+rm+-rf+/","result":"HTTP 200"},
+  {"id":"32","time":"01:15:02","ip":"10.20.4.18","user":"sudo_sandeep","event":"MAIL_SENT to admin@: \"Sir, small issue. Server is a bit empty.\"","result":"SENT"},
+  {"id":"33","time":"01:15:30","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"VOIP_CALL: \"Hello, Star Fisheries?\"","result":"WRONG NUMBER (third time tonight)"},
+  {"id":"34","time":"01:20:15","ip":"103.57.86.140","user":"gabbar_singh","event":"CMD: kill -9 kalia_process","result":"SUCCESS (\"Jo darr gaya, samjho mar gaya\")"},
+  {"id":"35","time":"01:20:44","ip":"10.20.4.52","user":"gopi_bahu","event":"CMD: ./wash_laptop.sh --bat","result":"SUCCESS (laptop thoroughly beaten)"},
+  {"id":"36","time":"01:25:40","ip":"157.32.200.11","user":"munna_bhai","event":"CMD: scp circuit@exam-hall:/answers.pdf .","result":"SUCCESS"},
+  {"id":"37","time":"01:25:44","ip":"157.32.200.11","user":"munna_bhai","event":"ALERT: unauthorized device (Bluetooth earpiece) connected","result":"WARNING"},
+  {"id":"38","time":"01:30:12","ip":"49.36.112.19","user":"raj_malhotra","event":"SSH: amritsar-express.rail.local","result":"CONNECTED (waiting on platform)"},
+  {"id":"39","time":"01:38:20","ip":"10.20.4.88","user":"chatur","event":"BROWSER: search \"how to rattafy 400 pages in one night\"","result":"HTTP 200"},
+  {"id":"40","time":"01:42:00","ip":"10.20.4.18","user":"sudo_sandeep","event":"MAIL_RECEIVED from admin@: \"RE: Sir small issue\" / \"WHAT DID YOU DO\"","result":"READ"},
+  {"id":"41","time":"01:44:37","ip":"185.220.14.77","user":"chatur","event":"LOGIN","result":"FAILED"},
+  {"id":"42","time":"01:50:33","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"SSH: 25-din-mein-paisa-double.com","result":"BLOCKED BY PROXY (suspicious scheme)"},
+  {"id":"43","time":"02:00:10","ip":"157.32.200.11","user":"munna_bhai","event":"EXEC: Jaadu_Ki_Jhappi.exe","result":"SUCCESS"},
+  {"id":"44","time":"02:00:30","ip":"157.32.200.11","user":"munna_bhai","event":"POLICY: 3 users hugged without consent form","result":"FLAGGED (Circuit approved)"},
+  {"id":"45","time":"02:05:48","ip":"49.36.112.19","user":"raj_malhotra","event":"FILE_DOWNLOAD: Sarson_Ke_Khet.mp4 (212 MB)","result":"SUCCESS (bandwidth dropped)"},
+  {"id":"46","time":"02:08:44","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"FILE_OPEN: Paisa_Hi_Paisa_Hoga.csv","result":"SUCCESS (file is empty)"},
+  {"id":"47","time":"02:10:00","ip":"10.20.4.52","user":"gopi_bahu","event":"BROWSER: search \"Rasode mein kaun tha?\"","result":"HTTP 200 (3,87,000 results)"},
+  {"id":"48","time":"02:15:40","ip":"103.57.86.140","user":"gabbar_singh","event":"FIREWALL: outbound to thakur-ramgarh.net (\"Ye haath mujhe de de\")","result":"BLOCKED"},
+  {"id":"49","time":"02:21:52","ip":"185.220.14.77","user":"chatur","event":"LOGIN","result":"FAILED"},
+  {"id":"50","time":"02:25:30","ip":"10.20.4.52","user":"gopi_bahu","event":"MAIL_SENT to kokila@: \"Ahem ahem. Ahem ahem.\"","result":"SENT"},
+  {"id":"51","time":"02:30:00","ip":"10.20.4.45","user":"jethalal_g","event":"LOGIN (password reset by IT to Babitaji@2026)","result":"SUCCESS"},
+  {"id":"52","time":"02:35:00","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"BROWSER: search \"utha le re baba\"","result":"HTTP 200 (memes found)"},
+  {"id":"53","time":"02:40:33","ip":"49.36.112.19","user":"raj_malhotra","event":"CMD: nslookup simran","result":"NO RECORD (lekin dil mein hai)"},
+  {"id":"54","time":"02:42:10","ip":"10.20.4.88","user":"chatur","event":"CMD: diff chatur_salary.txt rancho_salary.txt","result":"FILES DIFFER (\"mine will be bigger\")"},
+  {"id":"55","time":"02:45:17","ip":"10.20.4.52","user":"gopi_bahu","event":"CMD: kill -9 rasoi_process","result":"FAILED (process not found, who was in the kitchen?)"},
+  {"id":"56","time":"02:50:22","ip":"103.57.86.140","user":"gabbar_singh","event":"SEARCH: \"Holi kab hai, kab hai Holi\"","result":"NOT FOUND (calendar server tired)"},
+  {"id":"57","time":"02:58:14","ip":"185.220.14.77","user":"chatur","event":"LOGIN","result":"FAILED"},
+  {"id":"58","time":"03:00:12","ip":"10.20.4.45","user":"jethalal_g","event":"FILE_OPEN: Gada_Electronics_Sales.xlsx","result":"SUCCESS (sales: 0, Tapu Sena gave it all free)"},
+  {"id":"59","time":"03:00:50","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"MAIL_SENT to raju@: \"Ye Baburao ka style hai\"","result":"BOUNCED"},
+  {"id":"60","time":"03:05:30","ip":"10.20.4.88","user":"chatur","event":"MAIL_SENT to rancho@: \"5th September, same place, 10 years later. Bet?\"","result":"SENT"},
+  {"id":"61","time":"03:10:09","ip":"49.36.112.19","user":"raj_malhotra","event":"CMD: ping simran.local","result":"REPLY (she turned around! palat!)"},
+  {"id":"62","time":"03:12:00","ip":"49.36.112.19","user":"raj_malhotra","event":"MAIL_SENT to simran@: \"Ja Simran, ja. Jee le apni zindagi.\"","result":"SENT"},
+  {"id":"63","time":"03:15:20","ip":"10.20.4.52","user":"gopi_bahu","event":"CMD: ./wash_laptop.sh --detergent=Rin --bat","result":"SUCCESS (laptop put out to dry in the sun)"},
+  {"id":"64","time":"03:20:00","ip":"157.32.200.11","user":"munna_bhai","event":"CMD: apt install gandhigiri","result":"SUCCESS (roses sent to admin, \"Get well soon\")"},
+  {"id":"65","time":"03:25:48","ip":"10.20.4.45","user":"jethalal_g","event":"BROWSER: search \"how to avoid Iyer at office\"","result":"HTTP 200"},
+  {"id":"66","time":"03:30:46","ip":"185.220.14.77","user":"chatur","event":"LOGIN","result":"FAILED"},
+  {"id":"67","time":"03:40:15","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"EDIT: ~/.bashrc added alias chasma='sudo'","result":"SUCCESS"},
+  {"id":"68","time":"03:47:22","ip":"185.220.14.77","user":"chatur","event":"LOGIN","result":"SUCCESS"},
+  {"id":"69","time":"03:48:00","ip":"157.32.200.11","user":"munna_bhai","event":"MAIL_SENT to mamu@: \"Mamu, ye kya ho gaya?\"","result":"SENT"},
+  {"id":"70","time":"03:51:08","ip":"185.220.14.77","user":"chatur","event":"MFA_PROMPT_DISABLED","result":"SUCCESS"},
+  {"id":"71","time":"03:55:00","ip":"49.36.112.19","user":"raj_malhotra","event":"LOGOUT (MOTD: \"Bade bade deshon mein...\")","result":"SUCCESS"},
+  {"id":"72","time":"04:02:35","ip":"185.220.14.77","user":"chatur","event":"PRIVILEGE_CHANGE: user -> admin","result":"SUCCESS"},
+  {"id":"73","time":"04:05:50","ip":"157.32.200.11","user":"munna_bhai","event":"CHAT: circuit: \"Bhai tu chinta mat kar, Circuit hai na!\"","result":"DELIVERED"},
+  {"id":"74","time":"04:10:00","ip":"10.20.4.45","user":"jethalal_g","event":"LOGOUT","result":"SUCCESS"},
+  {"id":"75","time":"04:15:19","ip":"185.220.14.77","user":"chatur","event":"DIR_LISTING: /finance/","result":"SUCCESS"},
+  {"id":"76","time":"04:20:05","ip":"103.57.86.140","user":"gabbar_singh","event":"POLICY: threatening tone in commit message (\"Ab tera kya hoga?\")","result":"FLAGGED"},
+  {"id":"77","time":"04:26:03","ip":"185.220.14.77","user":"chatur","event":"FILE_DOWNLOAD: Salary_Data_2026.csv (48 MB)","result":"SUCCESS"},
+  {"id":"78","time":"04:30:00","ip":"103.57.86.140","user":"gabbar_singh","event":"MAIL_SENT to hr@: \"Jab bachcha rota hai, maa kehti hai so ja...\"","result":"SENT"},
+  {"id":"79","time":"04:33:50","ip":"185.220.14.77","user":"chatur","event":"LOG_CLEARED: auth.log","result":"SUCCESS"},
+  {"id":"80","time":"04:40:00","ip":"10.20.4.52","user":"gopi_bahu","event":"LOGOUT (laptop battery 0%, still humming bhajans)","result":"SUCCESS"},
+  {"id":"81","time":"04:45:00","ip":"103.57.86.140","user":"gabbar_singh","event":"LOGOUT","result":"SUCCESS"},
+  {"id":"82","time":"04:50:00","ip":"117.213.45.9","user":"baburao_ganpatrao","event":"LOGOUT","result":"SUCCESS"},
+  {"id":"83","time":"05:20:00","ip":"157.32.200.11","user":"munna_bhai","event":"LOGOUT","result":"SUCCESS"},
+  {"id":"84","time":"05:20:30","ip":"10.20.4.88","user":"chatur","event":"LOGOUT (session from 00:05, fell asleep on the keyboard)","result":"SUCCESS"}
+];
+
+/* Accent colour per user (filter buttons + row stripe) */
+const USER_COLORS = {
+  chatur:            "#5fd7ff",
+  sudo_sandeep:      "#ff9f5f",
+  raj_malhotra:      "#ff8fd0",
+  gabbar_singh:      "#d6a35c",
+  baburao_ganpatrao: "#b7e35a",
+  jethalal_g:        "#c59bff",
+  gopi_bahu:         "#ffd75f",
+  munna_bhai:        "#7fe8c8"
+};
+
+/* =========================================================
+   ANSWER HASHES — SHA-256(SALT + normalized answer)
+   ========================================================= */
+const SALT = "fs02-nightshift::";
+const ANSWER_HASHES = {
+  account: ["c74a9448590084fa3e450b6920e7d1860461de9109ebcb10d14c864979eed65a"],
+  ip:      ["81f6c8097f68b41deae0d6e9ddd7cbc8d513e3a05d65b42aede76f156913e9a4"],
+  time:    ["e4a9c0f090702c105319e1fb5300dd518b00fa52675c3f67b09c216eebc1a795"],
+  file:    ["0b8f362fe4ea13a2f69adc8f01d86294ca8ad2929d12adfaba2d85376d075c0a",
+            "4e2bc6a5d9a6bde3ba4aa83b484a6fbaba4dba5a05b9ec237d6b76679cda4fa7"]
+};
+/* Cover-up: the answer passes if ANY substring of it hashes to one of these keywords */
+const COVER_KEYWORD_HASHES = [
+  "9f85d79cefda0f8aa09093b6774077981ecf58e6b9fd9de2b992a02c262bde8c",
+  "3d13e6899ce85bdf5da7f0bab6cd028853e94388a211c9f22598ddee6dc96fe9",
+  "e4a24dd5bafc0eeed299b0b2c9a2c1923d5ff44258715ae6b7bc3ad51c208125",
+  "08ee6d5605e67c6963806fa4d9e92e9d1cfbdb7f4918e826a87348c9a185af0e",
+  "cc384de852f6bed8b6670f02ae0702c24bbd3f8ee96bce9154b3440e8d2418c8",
+  "bb8f345271706ccea475c81d309eeb79cf98022d719c3b08b08af5f75e35b254"
+];
+const COVER_KEYWORD_LENGTHS = [5, 8, 9, 10, 11];
+
+/* Facilitator answers, base64 of the reversed string (just to keep them out of plain sight) */
+const FAC = [
+  "cnV0YWhj",
+  "NzcuNDEuMDIyLjU4MQ==",
+  "KTIyOjc0OjMwKCA3NDozMA==",
+  "dnNjLjYyMDJfYXRhRF95cmFsYVM=",
+  "KTk3IyggZ29sLmh0dWEgZGVyYWVsYw=="
+];
+
+/* =========================================================
+   STORIES (only inserted into the DOM after the puzzle is solved)
+   ========================================================= */
+const STORIES = [
+  ["chatur", "rehearsed his Chamatkar speech 14 times, diffed his salary against Rancho's and fell asleep on the keyboard (3 Idiots). His account really was hacked while he snored."],
+  ["sudo_sandeep", "deleted the whole server with a stray space in <code>rm -rf</code>, then googled how to undo it."],
+  ["raj_malhotra", "pinged simran.local until she finally turned around (DDLJ)."],
+  ["gabbar_singh", "\"Kitne aadmi the?\" queries and a threatening commit message (Sholay)."],
+  ["baburao_ganpatrao", "the 25 din mein paisa double scheme (Hera Pheri)."],
+  ["jethalal_g", "locked out after guessing Babitaji passwords (TMKOC)."],
+  ["gopi_bahu", "washed the laptop with Rin and a bat (Rasode mein kaun tha?)."],
+  ["munna_bhai", "Bluetooth earpiece exam cheating and Jaadu Ki Jhappi (Munna Bhai MBBS)."]
+];
+
+/* =========================================================
+   LOG VIEWER
+   ========================================================= */
+const state = { user: "all", query: "", sort: "time" };
+const USERS = Object.keys(USER_COLORS);
+const $ = (sel) => document.querySelector(sel);
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function resultClass(result) {
+  const r = result.toUpperCase();
+  if (r.startsWith("SUCCESS")) return "r-success";
+  if (r.startsWith("FAILED")) return "r-failed";
+  if (/^(BLOCKED|FLAGGED|WARNING|CRITICAL|LOCKED)/.test(r)) return "r-warn";
+  return "r-other";
+}
+
+function buildFilters() {
+  const wrap = $("#filters");
+  const make = (key, label, color) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "filter-btn";
+    b.dataset.user = key;
+    b.textContent = label;
+    b.setAttribute("aria-pressed", key === state.user ? "true" : "false");
+    b.setAttribute("aria-label", key === "all" ? "Show all users" : "Show only entries for " + key);
+    if (color) b.style.setProperty("--accent", color);
+    b.addEventListener("click", () => {
+      state.user = key;
+      wrap.querySelectorAll(".filter-btn").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+      renderLog();
+    });
+    wrap.appendChild(b);
+  };
+  make("all", "All users", null);
+  USERS.forEach((u) => make(u, u, USER_COLORS[u]));
+}
+
+function renderLog() {
+  const q = state.query.trim().toLowerCase();
+  let rows = LOG.filter((r) => state.user === "all" || r.user === state.user);
+  if (q) rows = rows.filter((r) => [r.id, r.time, r.ip, r.user, r.event, r.result].some((v) => v.toLowerCase().includes(q)));
+  if (state.sort === "user") rows = rows.slice().sort((a, b) => a.user.localeCompare(b.user) || a.time.localeCompare(b.time));
+  else rows = rows.slice().sort((a, b) => a.time.localeCompare(b.time));
+
+  const body = $("#logBody");
+  body.innerHTML = rows.length
+    ? rows.map((r) => `<tr style="--accent:${USER_COLORS[r.user] || "transparent"}">
+        <td class="c-id">#${escapeHtml(r.id)}</td>
+        <td class="c-time">${escapeHtml(r.time)}</td>
+        <td class="c-ip">${escapeHtml(r.ip)}</td>
+        <td class="c-user">${escapeHtml(r.user)}</td>
+        <td class="c-event">${escapeHtml(r.event)}</td>
+        <td class="c-result ${resultClass(r.result)}">${escapeHtml(r.result)}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">No matching entries.</td></tr>`;
+
+  const who = state.user === "all" ? "all users" : state.user;
+  $("#count").textContent = `${rows.length} ${rows.length === 1 ? "entry" : "entries"} (${who})`;
+}
+
+$("#search").addEventListener("input", (e) => { state.query = e.target.value; renderLog(); });
+document.querySelectorAll(".sort-group button").forEach((b) => {
+  b.addEventListener("click", () => {
+    state.sort = b.dataset.sort;
+    document.querySelectorAll(".sort-group button").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    renderLog();
+  });
+});
+
+/* =========================================================
+   TIMER
+   ========================================================= */
+const timer = (() => {
+  const t = parseFloat(new URLSearchParams(location.search).get("t"));
+  const minutes = t > 0 ? t : TIME_LIMIT_MINUTES;
+  const total = Math.round(minutes * 60);
+  let remaining = total;
+  let handle = null;
+  const el = $("#timer");
+  const fmt = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  el.textContent = fmt(remaining);
+
+  function tick() {
+    remaining = Math.max(0, remaining - 1);
+    el.textContent = fmt(remaining);
+    el.classList.toggle("urgent", remaining > 0 && remaining <= 60);
+    if (remaining === 0) {
+      clearInterval(handle);
+      el.classList.add("up");
+      $("#timesUp").textContent = "Time's up!";
+      if (!solved) reportToHub({ status: "fail", attempts, durationSec: total, details: { reason: "Time's up" } });
+    }
+  }
+  return {
+    elapsed() { return total - remaining; },
+    start() {
+      if (handle) return;
+      handle = setInterval(tick, 1000);
+      $("#startBtn").disabled = true;
+      $("#startBtn").textContent = "Investigating...";
+    },
+    stop() { clearInterval(handle); }
+  };
+})();
+$("#startBtn").addEventListener("click", () => timer.start());
+document.addEventListener("click", () => timer.start(), { once: true });
+
+/* =========================================================
+   ANSWER CHECKING
+   ========================================================= */
+async function sha256(text) {
+  const bytes = new TextEncoder().encode(SALT + text);
+  if (window.crypto && crypto.subtle) {
+    const buf = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  return sha256Fallback(bytes);
+}
+
+/* Plain-JS SHA-256, used only where crypto.subtle is unavailable
+   (some browsers disable it for pages opened from file://). */
+function sha256Fallback(bytes) {
+  const K = [
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+  ];
+  const H = [0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+  const len = bytes.length;
+  const total = Math.ceil((len + 9) / 64) * 64;
+  const msg = new Uint8Array(total);
+  msg.set(bytes);
+  msg[len] = 0x80;
+  const view = new DataView(msg.buffer);
+  view.setUint32(total - 4, len * 8);
+  const W = new Uint32Array(64);
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  for (let off = 0; off < total; off += 64) {
+    for (let i = 0; i < 16; i++) W[i] = view.getUint32(off + i * 4);
+    for (let i = 16; i < 64; i++) {
+      const s0 = rotr(W[i-15], 7) ^ rotr(W[i-15], 18) ^ (W[i-15] >>> 3);
+      const s1 = rotr(W[i-2], 17) ^ rotr(W[i-2], 19) ^ (W[i-2] >>> 10);
+      W[i] = (W[i-16] + s0 + W[i-7] + s1) | 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
+      const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+    H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+  }
+  return H.map((x) => (x >>> 0).toString(16).padStart(8, "0")).join("");
+}
+
+const normalize = (s) => s.trim().toLowerCase().replace(/\s+/g, " ");
+
+/* "3:47", "03:47", "03:47:22" -> "03:47" */
+function normalizeTime(s) {
+  const m = normalize(s).match(/^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?$/);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : normalize(s);
+}
+
+async function checkCover(raw) {
+  const s = normalize(raw);
+  for (const len of COVER_KEYWORD_LENGTHS) {
+    for (let i = 0; i + len <= s.length; i++) {
+      if (COVER_KEYWORD_HASHES.includes(await sha256(s.slice(i, i + len)))) return true;
+    }
+  }
+  return false;
+}
+
+async function checkAll(values) {
+  return {
+    account: ANSWER_HASHES.account.includes(await sha256(normalize(values.account))),
+    ip:      ANSWER_HASHES.ip.includes(await sha256(normalize(values.ip))),
+    time:    ANSWER_HASHES.time.includes(await sha256(normalizeTime(values.time))),
+    file:    ANSWER_HASHES.file.includes(await sha256(normalize(values.file))),
+    cover:   await checkCover(values.cover)
+  };
+}
+
+let attempts = 0;
+let solved = false;
+
+$("#reportForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const keys = ["account", "ip", "time", "file", "cover"];
+  const values = Object.fromEntries(keys.map((k) => [k, $("#f-" + k).value]));
+  const results = await checkAll(values);
+
+  attempts++;
+  $("#attempts").textContent = `Attempts: ${attempts}`;
+
+  let correct = 0;
+  keys.forEach((k) => {
+    const field = document.querySelector(`.field[data-key="${k}"]`);
+    const ok = results[k];
+    if (ok) correct++;
+    field.classList.remove("ok", "bad", "shake");
+    field.classList.add(ok ? "ok" : "bad");
+    field.querySelector(".mark").textContent = ok ? "✓" : "✗";
+    $("#f-" + k).setAttribute("aria-invalid", ok ? "false" : "true");
+    if (!ok) { void field.offsetWidth; field.classList.add("shake"); }
+  });
+
+  const fb = $("#feedback");
+  if (correct === keys.length) {
+    fb.innerHTML = `<div class="score">${correct} of 5 correct</div>`;
+    if (!solved) showSuccess(values);
+  } else {
+    fb.innerHTML = `<div class="score">${correct} of 5 correct</div><div class="rejected">Report rejected. Keep investigating.</div>`;
+  }
+});
+
+/* =========================================================
+   SUCCESS STATE
+   ========================================================= */
+function showSuccess(values) {
+  solved = true;
+  timer.stop();
+  reportToHub({ status: "pass", attempts, durationSec: timer.elapsed() });
+  // Password = uppercased account + break-in time without the colon (built from validated answers)
+  const password = normalize(values.account).toUpperCase() + normalizeTime(values.time).replace(":", "");
+
+  const box = $("#success");
+  box.innerHTML = `
+    <div class="case-closed">CASE CLOSED</div>
+    <div class="pw-label">Escape-room password:</div>
+    <div id="password">${escapeHtml(password)}</div>
+    <div class="debrief">
+      <p>Now share your users' stories with the team!</p>
+      <details>
+        <summary>Story time</summary>
+        <ul>${STORIES.map(([u, s]) => `<li><b>${u}</b>: ${s}</li>`).join("")}</ul>
+      </details>
+    </div>`;
+  box.classList.add("show");
+  $("#submitBtn").textContent = "Report Accepted";
+  launchConfetti();
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function launchConfetti() {
+  const layer = $("#confetti");
+  const colors = ["#4dff88", "#ffbf47", "#5fd7ff", "#ff8fd0", "#c59bff", "#ff6b6b"];
+  let html = "";
+  for (let i = 0; i < 140; i++) {
+    const style = [
+      `left:${Math.random() * 100}%`,
+      `background:${colors[i % colors.length]}`,
+      `--dx:${(Math.random() * 300 - 150).toFixed(0)}px`,
+      `--rot:${(Math.random() * 1080 - 540).toFixed(0)}deg`,
+      `--dur:${(2.2 + Math.random() * 1.8).toFixed(2)}s`,
+      `--delay:${(Math.random() * 0.6).toFixed(2)}s`,
+      Math.random() < 0.4 ? "border-radius:50%;height:10px" : ""
+    ].join(";");
+    html += `<i style="${style}"></i>`;
+  }
+  layer.innerHTML = html;
+  setTimeout(() => { layer.innerHTML = ""; }, 5000);
+}
+
+/* =========================================================
+   FACILITATOR PANEL — Ctrl+Shift+F
+   ========================================================= */
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey && e.shiftKey && (e.key === "F" || e.key === "f")) {
+    e.preventDefault();
+    const panel = $("#facilitator");
+    if (panel.hidden) {
+      const decode = (s) => decodeURIComponent(escape(atob(s))).split("").reverse().join("");
+      const labels = ["Account", "Attacker IP", "Break-in time", "File stolen", "Cover-up"];
+      panel.innerHTML = `<h3>FACILITATOR (Ctrl+Shift+F to hide)</h3><ol>${FAC.map((a, i) => `<li>${labels[i]}: ${escapeHtml(decode(a))}</li>`).join("")}</ol>`;
+      panel.hidden = false;
+    } else {
+      panel.hidden = true;
+      panel.innerHTML = "";
+    }
+  }
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+buildFilters();
+renderLog();
+</script>
+</body>
+</html>

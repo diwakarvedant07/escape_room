@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Cyber Timeline</title>
+<style>
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --ink: #0f172a;
+    --ink-2: #334155;
+    --muted: #556070;
+    --line: #cbd3df;
+    --accent: #1d4ed8;
+    --accent-ink: #ffffff;
+    --accent-soft: #dbe6ff;
+    --good: #0f7a3d;
+    --good-soft: #dcf5e6;
+    --warn-soft: #fff4d6;
+    --warn-line: #e3b341;
+    --focus: #f59e0b;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 1px 1px rgba(15, 23, 42, .04);
+    --lift: 0 18px 40px rgba(15, 23, 42, .28), 0 4px 10px rgba(15, 23, 42, .18);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 12px; }
+  [hidden] { display: none !important; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 10px 18px; border-radius: 10px;
+    border: 2px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+    font-weight: 650; cursor: pointer; text-decoration: none;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.secondary { background: var(--surface); color: var(--accent); }
+  .btn.small { min-height: 44px; padding: 6px 12px; font-size: 14px; }
+  .btn.big { min-height: 60px; padding: 14px 40px; font-size: 20px; border-radius: 14px; }
+
+  /* ---------- Start screen ---------- */
+  #start { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; }
+  .hero { text-align: center; padding: 40px 8px; width: 100%; }
+  .hero .logo {
+    display: inline-flex; width: 72px; height: 72px; border-radius: 20px;
+    background: var(--ink); color: #fff; align-items: center; justify-content: center; margin-bottom: 18px;
+  }
+  .hero h1 { font-size: clamp(34px, 9vw, 54px); line-height: 1.05; margin: 0 0 16px; letter-spacing: -.02em; }
+  .hero p { margin: 0 auto; max-width: 30em; color: var(--ink-2); font-size: 17px; }
+  .hero .actions { margin-top: 28px; }
+  .resume-note { margin-top: 14px; color: var(--muted); font-size: 14px; }
+
+  /* ---------- Sticky top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
+  }
+  .topbar .wrap { padding-top: 8px; padding-bottom: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .brand { font-weight: 750; font-size: 15px; margin-right: auto; }
+  .stats { display: flex; gap: 12px; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .stats b { color: var(--ink); }
+  .meter-text { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; margin-top: 4px; }
+  .meter-pct { font-size: 28px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .meter-sub { color: var(--ink-2); font-size: 14px; }
+  .meter-pending { color: var(--muted); font-size: 13px; }
+  .track {
+    position: relative; height: 14px; border-radius: 99px; background: #dfe4ec; overflow: hidden;
+    border: 1px solid #c3cbd8; margin-top: 6px;
+  }
+  .fill {
+    height: 100%; width: 0; background: linear-gradient(90deg, #1d4ed8, #2563eb);
+    border-radius: 99px; transition: width .45s cubic-bezier(.2, .8, .2, 1);
+  }
+  .fill.done { background: linear-gradient(90deg, #0f7a3d, #16a34a); }
+
+  /* ---------- Tabs ---------- */
+  .tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 14px 0 10px; }
+  .tab {
+    text-align: left; min-height: 64px; padding: 10px 12px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--surface); cursor: pointer; position: relative;
+  }
+  .tab[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 -4px 0 var(--accent); }
+  .tab .t-kicker { display: block; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .tab .t-title { display: block; font-weight: 700; padding-right: 26px; overflow-wrap: anywhere; }
+  .tab .t-meter { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .tab .t-track { flex: 1; height: 6px; border-radius: 99px; background: #dfe4ec; overflow: hidden; }
+  .tab .t-fill { height: 100%; width: 0; background: var(--accent); transition: width .45s ease; }
+  .tab.solved .t-fill { background: var(--good); }
+  .tab .t-tick {
+    position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--good); color: #fff; display: none; align-items: center; justify-content: center;
+  }
+  .tab.solved .t-tick { display: inline-flex; }
+
+  /* ---------- Incident panel ---------- */
+  .panel { padding-bottom: 40px; }
+  .care-note {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 12px;
+    padding: 10px 12px; margin: 6px 0 12px; color: #5b4300; font-size: 15px;
+  }
+  .panel h2 { font-size: 24px; margin: 6px 0 6px; line-height: 1.2; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .solved-badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700;
+    color: var(--good); background: var(--good-soft); border: 1px solid #9fdcb8; border-radius: 99px; padding: 3px 10px;
+  }
+  .intro { color: var(--ink-2); margin: 0 0 14px; }
+  .end-label {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin: 8px 2px;
+  }
+  .end-label::after { content: ""; flex: 1; height: 2px; background: var(--line); border-radius: 2px; }
+
+  .cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .card {
+    display: flex; align-items: stretch; gap: 6px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 6px 6px 6px 0; min-height: 96px;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  .card:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .card.lifted {
+    position: fixed; z-index: 50; margin: 0; box-shadow: var(--lift);
+    transform: scale(1.02); cursor: grabbing; border-color: var(--accent);
+  }
+  .card.mouse-grab { cursor: grab; }
+  .placeholder {
+    border: 2px dashed var(--accent); border-radius: var(--radius); background: var(--accent-soft);
+  }
+  .grip {
+    flex: 0 0 40px; display: flex; align-items: center; justify-content: center;
+    color: #7a8698; cursor: grab; touch-action: none; border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .grip:hover { color: var(--accent); }
+  .locked .grip { cursor: default; color: #b6bfcc; }
+  .body { flex: 1; min-width: 0; padding: 8px 4px; display: flex; flex-direction: column; justify-content: center; }
+  .card-no { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .03em; margin-bottom: 2px; }
+  .card-text { margin: 0; overflow-wrap: anywhere; font-size: 15.5px; }
+  .arrows { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+  .arrow {
+    width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line);
+    background: #f4f6fa; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .arrow:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .arrow:disabled { opacity: .35; cursor: not-allowed; }
+  .card.hint-right { background: var(--good-soft); border-color: var(--good); box-shadow: inset 4px 0 0 var(--good); }
+  .hint-tag {
+    display: none; align-self: flex-start; align-items: center; gap: 4px; margin-bottom: 4px;
+    font-size: 12px; font-weight: 750; color: #fff; background: var(--good); border-radius: 99px; padding: 2px 8px;
+  }
+  .card.hint-right .hint-tag { display: inline-flex; }
+  .locked .card { box-shadow: none; }
+
+  .hint-box {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; margin: 0 0 12px;
+  }
+  .hint-box .hint-text { flex: 1 1 200px; margin: 0; font-size: 14px; color: var(--ink-2); }
+  .hint-box .hint-msg { flex-basis: 100%; margin: 0; font-size: 14px; font-weight: 650; color: var(--good); }
+  .hint-box .hint-msg:empty { display: none; }
+  .locked .arrows { display: none; }
+
+  .under-list { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+  .tip { color: var(--muted); font-size: 14px; margin: 14px 0 0; }
+
+  /* ---------- Reveal ---------- */
+  .reveal {
+    margin-top: 22px; background: var(--surface); border: 2px solid var(--good);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+  }
+  .reveal h3 { margin: 0 0 12px; font-size: 20px; }
+  .reveal h4 { margin: 20px 0 8px; font-size: 16px; }
+  .key { list-style: none; margin: 0; padding: 0; }
+  .key li { display: grid; grid-template-columns: 34px 1fr; gap: 2px 10px; padding: 10px 0; border-top: 1px solid #e3e8ef; }
+  .key li:first-child { border-top: 0; }
+  .key .pos {
+    grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; background: var(--good-soft); color: var(--good);
+    font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .key .date { font-weight: 700; overflow-wrap: anywhere; }
+  .key .date small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+  .key .what { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+  .tricky { margin: 0; padding-left: 20px; }
+  .tricky li { margin: 6px 0; overflow-wrap: anywhere; }
+
+  /* ---------- Finish ---------- */
+  .done-banner {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+    background: var(--good-soft); border: 1px solid #9fdcb8; border-radius: 12px; padding: 10px 12px; margin-top: 12px;
+  }
+  .overlay {
+    position: fixed; inset: 0; z-index: 100; background: rgba(15, 23, 42, .55);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .dialog {
+    background: var(--surface); border-radius: 18px; padding: 26px 22px; width: 100%; max-width: 440px;
+    text-align: center; box-shadow: var(--lift); max-height: calc(100vh - 32px); overflow: auto;
+  }
+  .dialog .big-tick {
+    width: 64px; height: 64px; border-radius: 50%; background: var(--good); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;
+  }
+  .dialog h2 { margin: 4px 0 6px; font-size: 28px; }
+  .dialog .result { display: flex; justify-content: center; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+  .dialog .result div { background: var(--bg); border-radius: 12px; padding: 10px 16px; min-width: 110px; }
+  .dialog .result b { display: block; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .dialog .result span { font-size: 13px; color: var(--muted); }
+  .reward {
+    background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 12px;
+    padding: 12px; margin: 0 0 16px; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .dialog .actions { display: flex; flex-direction: column; gap: 10px; }
+
+  @media (max-width: 420px) {
+    .meter-pct { font-size: 24px; }
+    .panel h2 { font-size: 21px; }
+    .card-text { font-size: 15px; }
+    .grip { flex-basis: 34px; }
+    .stats { gap: 8px; font-size: 13px; }
+    .brand { display: none; }
+    .stats { margin-right: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+    .card.lifted { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<section id="start" hidden>
+  <div class="wrap hero">
+    <div class="logo" aria-hidden="true">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </div>
+    <h1>Cyber Timeline</h1>
+    <p>You get two real cyber incidents, each told as a shuffled stack of cards.<br>
+      Put every card in order from earliest to latest. The meter shows how many are in the right place.</p>
+    <div class="actions"><button id="startBtn" class="btn big" type="button">Start</button></div>
+    <p id="resumeNote" class="resume-note" hidden></p>
+  </div>
+</section>
+
+<section id="game" hidden>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="bar-row">
+        <span class="brand">Cyber Timeline</span>
+        <span class="stats"><span>Moves <b id="moves">0</b></span><span>Hints <b id="hints">0</b></span></span>
+        <button id="restartBtn" class="btn secondary small" type="button">Restart</button>
+      </div>
+      <div id="meter" role="group" aria-label="Progress">
+        <div class="meter-text">
+          <span class="meter-pct" id="meterPct">0% complete</span>
+          <span class="meter-sub" id="meterSub">0 of 0 cards in the right place</span>
+          <span class="meter-pending" id="meterPending" hidden>Press “Check my order” to update</span>
+        </div>
+        <div class="track" id="meterTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Percent complete">
+          <div class="fill" id="meterFill"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <div id="doneBanner" class="done-banner" hidden>
+      <strong>Both timelines solved.</strong>
+      <button id="bannerAgain" class="btn small" type="button">Play again</button>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Incidents"></div>
+    <div id="panels"></div>
+  </main>
+</section>
+
+<div id="finish" class="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+    <div class="big-tick" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <h2 id="finishTitle" tabindex="-1">Well done!</h2>
+    <p>You put both timelines in the right order.</p>
+    <div class="result">
+      <div><b id="finMoves">0</b><span>total moves</span></div>
+      <div><b id="finHints">0</b><span>hints taken</span></div>
+    </div>
+    <p id="reward" class="reward" hidden></p>
+    <div class="actions">
+      <button id="againBtn" class="btn big" type="button">Play again</button>
+      <button id="reviewBtn" class="btn secondary" type="button">Review the timelines</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===== Config =====
+  const LIVE_METER = true;      // false: the meter only updates when "Check my order" is pressed
+  const FINAL_MESSAGE = "";     // shown on the finish screen when non-empty
+  const INCIDENTS_PER_GAME = 2;
+  const STORE_KEY = 'cyberTimeline.v1';
+
+  // ===== Data (generated from the Puzzle 4 doc by build/build-game.js; do not edit by hand) =====
+  const DATA = [{"n":1,"title":"Canvas hack","intro":"In 2026 a criminal group attacked Instructure, the US company behind Canvas, the learning platform used by thousands of schools and universities. Every card is a security event. Put the 12 cards in order, first to last.","cards":[{"id":1,"text":"The company says it has reached an agreement with the attacker. It says the stolen data was handed back and it received digital proof that the copies were destroyed (shred logs). It does not say whether money was paid."},{"id":2,"text":"The attacker signs up for a free teacher account and sends a support ticket with malicious code hidden inside. Logs then start to show access from the company's own customer support accounts."},{"id":3,"text":"The company says its forensic review of the stolen data is now complete. Schools still waiting will be contacted when their share of the data is ready."},{"id":4,"text":"The company marks the incident resolved on its status page. It says the platform is fully working and it sees no ongoing unauthorized activity."},{"id":5,"text":"The same criminal group tricks its way into the company's Salesforce customer records. The company later calls this a separate incident, unrelated to the attack on its platform."},{"id":6,"text":"The CEO writes to customers that the free teacher product has been switched off temporarily for a full security review. The letter says course content, submissions and login credentials were not compromised."},{"id":7,"text":"The company says the incident is contained. Names, email addresses, student ID numbers and messages may have been exposed, but not passwords, birth dates, government IDs or financial details."},{"id":8,"text":"The company pauses sending schools their share of the stolen data, because the outside file-sharing service it planned to use may be facing a security threat."},{"id":9,"text":"A criminal group posts a ransom note. It claims to hold data on about 275 million people from nearly 9,000 schools."},{"id":10,"text":"The company spots unauthorized activity on its platform, cuts off the intruder's access and calls in outside forensic experts."},{"id":11,"text":"In the middle of final exams, login pages at hundreds of schools are replaced with a ransom message and a deadline. The company puts the whole platform into maintenance mode."},{"id":12,"text":"For the first time since the shutdown, the company briefly switches its free teacher product back on so teachers can download their course content."}],"key":"eyJvcmRlciI6WzUsMiwxMCw3LDksNCwxMSw2LDEsMTIsOCwzXSwicm93cyI6W3siY2FyZCI6NSwiZGF0ZSI6IlNlcHQgMjAyNSIsInRleHQiOiJTaGlueUh1bnRlcnMgYnJlYWNoZXMgSW5zdHJ1Y3R1cmUncyBTYWxlc2ZvcmNlIGVudmlyb25tZW50IHRocm91Z2ggc29jaWFsIGVuZ2luZWVyaW5nIChlYXJsaWVyLCBzZXBhcmF0ZSBpbmNpZGVudCkifSx7ImNhcmQiOjIsImRhdGUiOiJGcm9tIGFib3V0IEFwciAyNSwgMjAyNiIsInRleHQiOiJGcmVlLWZvci1UZWFjaGVyIGFjY291bnQgdXNlZCB0byBwbGFudCBtYWxpY2lvdXMgY29kZSBpbiBhIHN1cHBvcnQgdGlja2V0OyBzdXBwb3J0LXN0YWZmIGFjY291bnRzIHNob3cgYWNjZXNzIEFwciAyNSB0byBBcHIgMzAifSx7ImNhcmQiOjEwLCJkYXRlIjoiQXByIDI5IiwidGV4dCI6Ikluc3RydWN0dXJlIGRldGVjdHMgdW5hdXRob3JpemVkIGFjdGl2aXR5LCByZXZva2VzIGFjY2VzcywgZW5nYWdlcyBmb3JlbnNpYyBleHBlcnRzIn0seyJjYXJkIjo3LCJkYXRlIjoiTWF5IDIiLCJ0ZXh0IjoiSW5zdHJ1Y3R1cmUgc2F5cyB0aGUgaW5jaWRlbnQgaXMgY29udGFpbmVkIGFuZCBsaXN0cyB0aGUgZGF0YSB0eXBlcyBleHBvc2VkIn0seyJjYXJkIjo5LCJkYXRlIjoiTWF5IDMiLCJ0ZXh0IjoiU2hpbnlIdW50ZXJzIHJhbnNvbSBub3RlIGNsYWltcyBhYm91dCAyNzUgbWlsbGlvbiBwZW9wbGUgYW5kIG5lYXJseSA5LDAwMCBzY2hvb2xzIn0seyJjYXJkIjo0LCJkYXRlIjoiTWF5IDYiLCJ0ZXh0IjoiU3RhdHVzIHBhZ2UgbWFya3MgdGhlIGluY2lkZW50IFJlc29sdmVkIn0seyJjYXJkIjoxMSwiZGF0ZSI6Ik1heSA3IiwidGV4dCI6IlNlY29uZCBhdHRhY2s6IGxvZ2luIHBhZ2VzIGRlZmFjZWQgd2l0aCBhIHJhbnNvbSBub3RlIChkZWFkbGluZSBNYXkgMTIpOyBDYW52YXMgcHV0IGludG8gbWFpbnRlbmFuY2UgbW9kZSJ9LHsiY2FyZCI6NiwiZGF0ZSI6Ik1heSA4IiwidGV4dCI6IkNFTyBsZXR0ZXI6IEZyZWUtZm9yLVRlYWNoZXIgdGVtcG9yYXJpbHkgZGlzYWJsZWQ7IGNvcmUgbGVhcm5pbmcgZGF0YSBub3QgY29tcHJvbWlzZWQifSx7ImNhcmQiOjEsImRhdGUiOiJNYXkgMTEiLCJ0ZXh0IjoiQWdyZWVtZW50IHdpdGggdGhlIGF0dGFja2VyIGFubm91bmNlZDsgZGF0YSByZXR1cm5lZCwgc2hyZWQgbG9ncyByZWNlaXZlZCJ9LHsiY2FyZCI6MTIsImRhdGUiOiJNYXkgMjggdG8gMjksIDIwMjYiLCJ0ZXh0IjoiRnJlZS1mb3ItVGVhY2hlciBhY2Nlc3MgaXMgcmVzdG9yZWQgZm9yIHR3byBkYXlzLCBmb3IgdGhlIGZpcnN0IHRpbWUgc2luY2UgdGhlIHNodXRkb3duLCBzbyBlZHVjYXRvcnMgY2FuIGRvd25sb2FkIHRoZWlyIGNvdXJzZSBjb250ZW50In0seyJjYXJkIjo4LCJkYXRlIjoiSnVseSAxNCIsInRleHQiOiJEYXRhIGRlbGl2ZXJ5IHRvIHNjaG9vbHMgcGF1c2VkIG92ZXIgYSBwb3NzaWJsZSB0aHJlYXQgdG8gdGhlIHRoaXJkLXBhcnR5IGZpbGUtc2hhcmluZyBwbGF0Zm9ybSJ9LHsiY2FyZCI6MywiZGF0ZSI6IlNlcHQgMjksIDIwMjYiLCJ0ZXh0IjoiRm9yZW5zaWMgcmV2aWV3IG9mIHRoZSBkYXRhIGRlY2xhcmVkIGNvbXBsZXRlIn1dLCJ0cmlja3kiOlsiVGhyZWUgZnJlZS10ZWFjaGVyIGNhcmRzICgyLCA2LCAxMikgdGVsbCBvbmUgc3Rvcnk6IHRoZSB3YXkgaW4sIHRoZSB0ZW1wb3Jhcnkgc3dpdGNoLW9mZiwgYW5kIHRoZSB0d28tZGF5IHJlb3BlbmluZyBmb3IgY291cnNlIGRvd25sb2FkcywgbmVhcmx5IHRocmVlIHdlZWtzIGxhdGVyLiBUZWFtcyB0ZW5kIHRvIHB1dCA2IGFuZCAxMiBzaWRlIGJ5IHNpZGUsIGJ1dCB0aGUgZGVhbCB3aXRoIHRoZSBoYWNrZXJzIChDYXJkIDEpIGZhbGxzIGJldHdlZW4gdGhlbS4iLCJDYXJkIDQgbG9va3MgbGlrZSB0aGUgZW5kIG9mIHRoZSBzdG9yeSwgYnV0IHRoZSBjb21wYW55IGNhbGxlZCBpdCByZXNvbHZlZCBqdXN0IG9uZSBkYXkgYmVmb3JlIHRoZSBzZWNvbmQgYXR0YWNrIChDYXJkIDExKS4iLCJDYXJkIDUgZmVlbHMgbGlrZSBwYXJ0IG9mIHRoZSBhZnRlcm1hdGgsIGJ1dCBpdCBoYXBwZW5lZCBhYm91dCBzZXZlbiBtb250aHMgYmVmb3JlIHRoZSBtYWluIGF0dGFjay4gQ2FyZCAzIGlzIGFsc28gaW4gU2VwdGVtYmVyLCBidXQgYSB5ZWFyIGxhdGVyLiIsIkNhcmRzIDcsIDkgYW5kIDQgZmFsbCB3aXRoaW4gZml2ZSBkYXlzLiBNYW55IHBlb3BsZSB3aWxsIHB1dCB0aGUgZ2FuZydzIHJhbnNvbSBub3RlIChDYXJkIDkpIGZpcnN0LCBidXQgdGhlIGNvbXBhbnkgZGVzY3JpYmVkIHRoZSBzdG9sZW4gZGF0YSBvbmUgZGF5IGVhcmxpZXIgKENhcmQgNykuIiwiQ2FyZCA4IHNvdW5kcyBsaWtlIGEgdGhpcmQgYnJlYWstaW4uIEl0IGlzIG5vdDogdGhlIHRocmVhdCB3YXMgYXQgYW4gb3V0c2lkZSBmaWxlLXNoYXJpbmcgc2VydmljZSwgbW9udGhzIGxhdGVyLCB3aGlsZSB0aGUgY29tcGFueSB3YXMgc2VuZGluZyBzY2hvb2xzIHRoZWlyIGRhdGEuIiwiQ2FyZHMgNiBhbmQgMSBhcmUgYm90aCBjb21wYW55IHN0YXRlbWVudHMgYWZ0ZXIgdGhlIGRlZmFjZW1lbnQuIFRoZSBDRU8gbGV0dGVyIChDYXJkIDYpIGNhbWUgdGhlIGRheSBhZnRlcjsgdGhlIGRlYWwgd2l0aCB0aGUgaGFja2VycyAoQ2FyZCAxKSBjYW1lIGZvdXIgZGF5cyBhZnRlci4iXX0="},{"n":2,"title":"Pager attack","intro":"In September 2024, thousands of pagers and walkie-talkies used by Hezbollah exploded across Lebanon and Syria. It was not a computer hack: the devices were rigged before they were ever sold. Put the 9 cards in order, first to last.","cards":[{"id":1,"text":"The day after the first blasts, hundreds of walkie-talkies explode across Lebanon, including at a funeral in Beirut."},{"id":2,"text":"Hezbollah's leader tells supporters in a televised speech that their mobile phones are more dangerous than Israeli spies, and that they should break them, bury them or lock them away."},{"id":3,"text":"Months later, Turkish media and officials reveal that Turkey seized a shipment of about 1,300 pagers at Istanbul Airport that was heading to Lebanon, describing it as another planned pager attack."},{"id":4,"text":"Israel's prime minister's office confirms for the first time that he approved the pager operation."},{"id":5,"text":"According to former Israeli agents, booby-trapped walkie-talkies start being sold into Lebanon. The explosives stay dormant for years, until September 2024."},{"id":6,"text":"Two former Mossad agents, wearing masks and with their voices disguised, describe on American TV how a fake company sold the rigged devices to Hezbollah."},{"id":7,"text":"In the afternoon, thousands of pagers carried by Hezbollah members explode at almost the same moment across Lebanon and Syria. Thousands of people are injured, including civilians and children."},{"id":8,"text":"According to former Israeli agents, work begins on booby-trapped pagers, to be sold through a front company that looks like a real pager business."},{"id":9,"text":"Lebanon bans pagers and walkie-talkies on all flights leaving Beirut airport."}],"key":"eyJvcmRlciI6WzUsOCwyLDcsMSw5LDQsNiwzXSwicm93cyI6W3siY2FyZCI6NSwiZGF0ZSI6IkFib3V0IDIwMTUiLCJ0ZXh0IjoiUmlnZ2VkIHdhbGtpZS10YWxraWVzIHN0YXJ0IGVudGVyaW5nIExlYmFub24gKGNsYWltIGJ5IGZvcm1lciBNb3NzYWQgYWdlbnRzKSJ9LHsiY2FyZCI6OCwiZGF0ZSI6IjIwMjIiLCJ0ZXh0IjoiUGFnZXIgcGxhbiBiZWdpbnMsIHVzaW5nIGEgZnJvbnQgY29tcGFueSAoY2xhaW0gYnkgZm9ybWVyIE1vc3NhZCBhZ2VudHMpIn0seyJjYXJkIjoyLCJkYXRlIjoiRmViIDEzLCAyMDI0IiwidGV4dCI6Ik5hc3JhbGxhaCdzIHRlbGV2aXNlZCBzcGVlY2ggdGVsbGluZyBzdXBwb3J0ZXJzIHRvIGdldCByaWQgb2YgdGhlaXIgcGhvbmVzIn0seyJjYXJkIjo3LCJkYXRlIjoiU2VwdCAxNywgMjAyNCwgYWJvdXQgMzozMCBwbSBsb2NhbCB0aW1lIiwidGV4dCI6IlBhZ2VycyBleHBsb2RlIGFjcm9zcyBMZWJhbm9uIGFuZCBTeXJpYSJ9LHsiY2FyZCI6MSwiZGF0ZSI6IlNlcHQgMTgsIGFib3V0IDUgcG0iLCJ0ZXh0IjoiV2Fsa2llLXRhbGtpZXMgZXhwbG9kZSwgaW5jbHVkaW5nIGF0IGEgZnVuZXJhbCBpbiBCZWlydXQifSx7ImNhcmQiOjksImRhdGUiOiJTZXB0IDE5IiwidGV4dCI6IkxlYmFuZXNlIGNpdmlsIGF2aWF0aW9uIGF1dGhvcml0eSBiYW5zIHBhZ2VycyBhbmQgd2Fsa2llLXRhbGtpZXMgb24gZmxpZ2h0cyBmcm9tIEJlaXJ1dCJ9LHsiY2FyZCI6NCwiZGF0ZSI6Ik5vdiAxMSwgMjAyNCIsInRleHQiOiJOZXRhbnlhaHUncyBvZmZpY2UgY29uZmlybXMgaGUgYXBwcm92ZWQgdGhlIG9wZXJhdGlvbiJ9LHsiY2FyZCI6NiwiZGF0ZSI6IkRlYyAyMiwgMjAyNCIsInRleHQiOiJDQlMgNjAgTWludXRlcyBpbnRlcnZpZXcgd2l0aCB0d28gZm9ybWVyIE1vc3NhZCBhZ2VudHMifSx7ImNhcmQiOjMsImRhdGUiOiJNYXkgNiwgMjAyNSIsInRleHQiOiJBUCByZXBvcnRzIFR1cmtleSdzIHNlaXp1cmUgb2YgMSwzMDAgcGFnZXJzIGF0IElzdGFuYnVsIEFpcnBvcnQgKGZpcnN0IHJlcG9ydGVkIGJ5IERhaWx5IFNhYmFoKSJ9XSwidHJpY2t5IjpbIkNhcmRzIDUgYW5kIDggaGFwcGVuIHllYXJzIGJlZm9yZSB0aGUgYmxhc3RzLiBUaGUgcHVibGljIG9ubHkgbGVhcm5lZCBhYm91dCB0aGVtIGZyb20gdGhlIGFnZW50cycgVFYgaW50ZXJ2aWV3IChDYXJkIDYpLCBtb250aHMgYWZ0ZXIgdGhlIGF0dGFja3MuIFRlYW1zIHRoYXQgc29ydCBieSBuZXdzIGRhdGUgd2lsbCBwbGFjZSB0aGVtIHRvbyBsYXRlLiIsIkNhcmQgMiBjb21lcyBhZnRlciBDYXJkIDguIE1hbnkgcGVvcGxlIGFzc3VtZSB0aGUgcGFnZXJzIHdlcmUgbWFkZSBiZWNhdXNlIG9mIHRoZSBzcGVlY2ggdGVsbGluZyBzdXBwb3J0ZXJzIHRvIGRpdGNoIHRoZWlyIHBob25lcy4gQWNjb3JkaW5nIHRvIHRoZSBhZ2VudHMsIHdvcmsgb24gdGhlIHBhZ2VycyBiZWdhbiBhYm91dCB0d28geWVhcnMgZWFybGllci4gVGhlIHNwZWVjaCBvbmx5IHB1c2hlZCBtb3JlIG1lbWJlcnMgb250byB0aGVtLiIsIkNhcmRzIDcsIDEgYW5kIDkgZmFsbCBvbiB0aHJlZSBkYXlzIGluIGEgcm93LiBDYXJkIDEncyBjbHVlICh0aGUgZGF5IGFmdGVyIHRoZSBmaXJzdCBibGFzdHMpIGhlbHBzLCBhbmQgbG9naWMgcGxhY2VzIHRoZSBmbGlnaHQgYmFuIChDYXJkIDkpIGFmdGVyIGJvdGggd2F2ZXMuIiwiQ2FyZHMgNCBhbmQgNiBhcmUgYm90aCBJc3JhZWwncyBzaWRlIG9mIHRoZSBzdG9yeS4gVGhlIG9mZmljaWFsIGNvbmZpcm1hdGlvbiBjYW1lIGZpcnN0LCBhbmQgdGhlIGFnZW50cycgaW50ZXJ2aWV3IGFib3V0IHNpeCB3ZWVrcyBsYXRlci4iLCJDYXJkIDMgaXMgcGxhY2VkIGJ5IHdoZW4gaXQgd2FzIHJldmVhbGVkLiBUaGUgc2hpcG1lbnQgd2FzIHNlaXplZCBpbiBTZXB0ZW1iZXIgMjAyNCwgYXJvdW5kIHRoZSB0aW1lIG9mIHRoZSBhdHRhY2tzLCBidXQgbm9ib2R5IGtuZXcgdW50aWwgTWF5IDIwMjUsIHdoaWNoIG1ha2VzIGl0IHRoZSBsYXN0IGNhcmQuIl19"},{"n":3,"title":"AIIMS Delhi","intro":"In November 2022 a ransomware attack knocked out the computer systems of AIIMS Delhi, India's best-known government hospital, for about two weeks. Staff went back to pen and paper. Put the 10 cards in order, first to last.","cards":[{"id":1,"text":"AIIMS says the e-Hospital data has been restored on its servers, but the network is still being cleaned before services come back."},{"id":2,"text":"A minister tells Parliament in a written answer that five servers were hit and about 1.3 TB of data was encrypted, blaming poor separation between parts of the hospital network."},{"id":3,"text":"Online registration of new outpatients restarts, but internet access is still blocked across the hospital."},{"id":4,"text":"Early in the morning, the hospital's servers fail. Patient registration, admission, billing and lab reports stop working, and staff switch to doing everything by hand."},{"id":5,"text":"The hospital says its security systems caught and stopped a new malware attack. The same day, a minister says there was no cyber incident at all."},{"id":6,"text":"Police ask the CBI to get Interpol's help tracing the internet addresses behind emails sent by the hackers, linked to Hong Kong and China's Henan province."},{"id":7,"text":"Delhi Police say no ransom demand has been made to the hospital, the same evening media reports claimed the hackers wanted about Rs 200 crore in cryptocurrency."},{"id":8,"text":"Government sources say the attack came from China. Of the hospital's 100 servers, five were broken into, and their data has now been recovered."},{"id":9,"text":"Delhi Police's special cyber unit registers a case of extortion and cyber terrorism."},{"id":10,"text":"Another large Delhi government hospital reports a cyberattack on its server, but says it is not ransomware."}],"key":"eyJvcmRlciI6WzQsOSw3LDEsMTAsMyw4LDIsNiw1XSwicm93cyI6W3siY2FyZCI6NCwiZGF0ZSI6Ik5vdiAyMywgMjAyMiwgYWJvdXQgNyBhbSIsInRleHQiOiJBSUlNUyBzZXJ2ZXJzIGdvIGRvd247IGUtSG9zcGl0YWwgc2VydmljZXMgZmFpbDsgbWFudWFsIG1vZGUgYmVnaW5zIn0seyJjYXJkIjo5LCJkYXRlIjoiTm92IDI1IiwidGV4dCI6IkRlbGhpIFBvbGljZSBJRlNPIHVuaXQgcmVnaXN0ZXJzIGEgY2FzZSBvZiBleHRvcnRpb24gYW5kIGN5YmVyIHRlcnJvcmlzbSJ9LHsiY2FyZCI6NywiZGF0ZSI6Ik5vdiAyOCAobmlnaHQpIiwidGV4dCI6IkRlbGhpIFBvbGljZSBzYXkgbm8gcmFuc29tIGRlbWFuZCBoYXMgYmVlbiBtYWRlICh0aGUgc2FtZSBkYXkgYXMgdGhlIFBUSSByZXBvcnQgb2YgUnMgMjAwIGNyb3JlKSJ9LHsiY2FyZCI6MSwiZGF0ZSI6Ik5vdiAyOSIsInRleHQiOiJBSUlNUyBzYXlzIHRoZSBlLUhvc3BpdGFsIGRhdGEgaGFzIGJlZW4gcmVzdG9yZWQgYW5kIHRoZSBuZXR3b3JrIGlzIGJlaW5nIHNhbml0aXplZCBiZWZvcmUgc2VydmljZXMgcmV0dXJuIn0seyJjYXJkIjoxMCwiZGF0ZSI6IlJlcG9ydGVkIERlYyAzIiwidGV4dCI6IlNhZmRhcmp1bmcgSG9zcGl0YWwgcmVwb3J0cyBhIGN5YmVyYXR0YWNrLCBzYXlzIGl0IGlzIG5vdCByYW5zb213YXJlIn0seyJjYXJkIjozLCJkYXRlIjoiRGVjIDYiLCJ0ZXh0IjoiT25saW5lIE9QRCByZWdpc3RyYXRpb24gb2YgbmV3IHBhdGllbnRzIHJlc3VtZXMgcGFydGlhbGx5OyBpbnRlcm5ldCBzdGlsbCBibG9ja2VkIn0seyJjYXJkIjo4LCJkYXRlIjoiRGVjIDE0IiwidGV4dCI6IkdvdmVybm1lbnQgc291cmNlczogYXR0YWNrIG9yaWdpbmF0ZWQgZnJvbSBDaGluYTsgNSBvZiAxMDAgc2VydmVycyBoaXQ7IGRhdGEgcmV0cmlldmVkIn0seyJjYXJkIjoyLCJkYXRlIjoiRGVjIDE2IiwidGV4dCI6IldyaXR0ZW4gcmVwbHkgaW4gUmFqeWEgU2FiaGE6IDUgc2VydmVycywgYWJvdXQgMS4zIFRCIGVuY3J5cHRlZCwgaW1wcm9wZXIgbmV0d29yayBzZWdtZW50YXRpb24ifSx7ImNhcmQiOjYsImRhdGUiOiJEZWMgMTgiLCJ0ZXh0IjoiRGVsaGkgUG9saWNlIHdyaXRlIHRvIENCSSBzZWVraW5nIEludGVycG9sIGhlbHAgb24gQ2hpbmEgYW5kIEhvbmcgS29uZyBJUCBhZGRyZXNzZXMifSx7ImNhcmQiOjUsImRhdGUiOiJKdW5lIDYsIDIwMjMiLCJ0ZXh0IjoiQUlJTVMgc2F5cyBpdCB0aHdhcnRlZCBhIG1hbHdhcmUgYXR0YWNrOyBNb1MgSVQgc2F5cyB0aGVyZSB3YXMgbm8gYnJlYWNoIn1dLCJ0cmlja3kiOlsiQ2FyZHMgOCBhbmQgMiBib3RoIHNheSBmaXZlIHNlcnZlcnMuIFRoZSBDaGluYSBjbGFpbSAoQ2FyZCA4KSBjYW1lIGZpcnN0LCBmcm9tIHVubmFtZWQgZ292ZXJubWVudCBzb3VyY2VzLiBUd28gZGF5cyBsYXRlciB0aGUgb2ZmaWNpYWwgYW5zd2VyIGluIFBhcmxpYW1lbnQgKENhcmQgMikgYmxhbWVkIHVua25vd24gdGhyZWF0IGFjdG9ycyBhbmQgZGlkIG5vdCBuYW1lIENoaW5hLiIsIkNhcmQgNiBmZWVscyBsaWtlIGl0IHNob3VsZCBjb21lIGJlZm9yZSBDYXJkIDguIE1vc3QgcGVvcGxlIGV4cGVjdCBwb2xpY2UgdG8gdHJhY2UgdGhlIGhhY2tlcnMgZmlyc3QgYW5kIHRoZSBDaGluYSBjbGFpbSB0byBmb2xsb3cuIEluIGZhY3QsIHBvbGljZSB3cm90ZSB0byB0aGUgQ0JJIGZvdXIgZGF5cyBhZnRlciB0aGUgQ2hpbmEgY2xhaW0gd2FzIHJlcG9ydGVkLiIsIkNhcmQgNyBpcyBhIHRyYXAuIE1hbnkgcGVvcGxlIGFzc3VtZSBhIHJhbnNvbSBkZW1hbmQgY2FtZSBvbiBkYXkgb25lLiBUaGUgcmFuc29tIHN0b3J5IG9ubHkgYXBwZWFyZWQgYWJvdXQgZml2ZSBkYXlzIGxhdGVyLCBhbmQgcG9saWNlIGRlbmllZCBpdCB0aGUgc2FtZSBuaWdodC4iLCJDYXJkIDEgc291bmRzIGxpa2UgdGhlIGVuZCBvZiB0aGUgc3RvcnksIGJ1dCBpdCBjYW1lIG9uIE5vdiAyOSwgb25lIGRheSBhZnRlciB0aGUgcG9saWNlIGRlbmllZCBhbnkgcmFuc29tIGRlbWFuZCBhbmQgYSB3ZWVrIGJlZm9yZSBvbmxpbmUgcmVnaXN0cmF0aW9uIHJldHVybmVkIG9uIERlYyA2LiIsIkNhcmQgMTAgaXMgYWJvdXQgYSBkaWZmZXJlbnQgaG9zcGl0YWwsIHNvIHRlYW1zIGhhdmUgdG8gcGxhY2UgaXQgYnkgZGF0ZSBhbG9uZSwgaW4gdGhlIG1pZGRsZSBvZiB0aGUgQUlJTVMgcmVjb3ZlcnkuIiwiQ2FyZCA1IGlzIGZyb20gdGhlIG5leHQgeWVhci4gQmVjYXVzZSBpdCBhbHNvIGNvbnRhaW5zIGEgY29udHJhZGljdGlvbiAodGhlIGhvc3BpdGFsIHNheXMgYXR0YWNrLCB0aGUgbWluaXN0ZXIgc2F5cyBubyBpbmNpZGVudCksIHRlYW1zIG9mdGVuIHB1dCBpdCBpbiB0aGUgMjAyMiBjb25mdXNpb24uIl19"},{"n":4,"title":"Bybit heist","intro":"In February 2025 about $1.5 billion was stolen from the Dubai-based crypto exchange Bybit, the biggest crypto theft ever. The hackers never attacked Bybit directly: they broke into outside software it used to approve big transfers. Put the 10 cards in order, first to last.","cards":[{"id":1,"text":"Bybit launches a dedicated website where anyone can help hunt the stolen funds and earn a reward for helping trace or freeze them."},{"id":2,"text":"During a routine transfer, Bybit staff approve what looks like a normal transaction on their screens. It actually hands control of the wallet to the hackers, and about $1.5 billion in Ether is drained."},{"id":3,"text":"Safe{Wallet} shares its investigation findings: the hackers got in through one developer's computer and used stolen login sessions to get around two-step verification."},{"id":4,"text":"Bybit says it has fully replaced the stolen Ether using loans, deposits and purchases."},{"id":5,"text":"Bybit's CEO says more than a quarter of the stolen money has gone dark and can no longer be traced."},{"id":6,"text":"A developer at Safe{Wallet}, the company whose software Bybit uses to approve big transfers, downloads what looks like a stock investment simulator project. It infects the developer's Mac."},{"id":7,"text":"Within hours of the theft, a well-known online crypto investigator publishes evidence linking it to North Korea's Lazarus Group."},{"id":8,"text":"The FBI publicly says North Korea is behind the theft, calls the activity TraderTraitor, and lists the hackers' wallet addresses."},{"id":9,"text":"Hidden code is planted in Safe{Wallet}'s website files. It is set to switch on only when Bybit's wallet is being used."},{"id":10,"text":"After customers rush to pull out their money, the CEO says all withdrawal requests have been processed and normal operations have resumed."}],"key":"eyJvcmRlciI6WzYsOSwyLDcsMTAsNCwxLDgsMyw1XSwicm93cyI6W3siY2FyZCI6NiwiZGF0ZSI6IkZlYiA0LCAyMDI1IiwidGV4dCI6IlNhZmV7V2FsbGV0fSBkZXZlbG9wZXIncyBNYWMgaW5mZWN0ZWQgdGhyb3VnaCBhIGZha2Ugc3RvY2sgaW52ZXN0bWVudCBzaW11bGF0b3IgRG9ja2VyIHByb2plY3QifSx7ImNhcmQiOjksImRhdGUiOiJCeSBGZWIgMTkiLCJ0ZXh0IjoiTWFsaWNpb3VzIEphdmFTY3JpcHQgcGxhbnRlZCBpbiBTYWZle1dhbGxldH0ncyB3ZWIgZmlsZXMsIHRhcmdldGluZyBvbmx5IEJ5Yml0J3MgY29sZCB3YWxsZXQifSx7ImNhcmQiOjIsImRhdGUiOiJGZWIgMjEsIDE0OjEzIFVUQyIsInRleHQiOiJUaGVmdCBkdXJpbmcgYSByb3V0aW5lIGNvbGQtdG8td2FybSB3YWxsZXQgdHJhbnNmZXI7IGFib3V0IDQwMSwwMDAgRVRIIChhYm91dCAkMS40IHRvIDEuNSBiaWxsaW9uKSJ9LHsiY2FyZCI6NywiZGF0ZSI6IkZlYiAyMSwgMTk6MDkgVVRDIiwidGV4dCI6IlphY2hYQlQgcHVibGlzaGVzIGV2aWRlbmNlIGxpbmtpbmcgdGhlIGF0dGFjayB0byB0aGUgTGF6YXJ1cyBHcm91cCJ9LHsiY2FyZCI6MTAsImRhdGUiOiJGZWIgMjIsIDAyOjUxIFVUQyIsInRleHQiOiJDRU8gQmVuIFpob3Ugc2F5cyBhbGwgd2l0aGRyYXdhbHMgcHJvY2Vzc2VkIChvdmVyIDM1MCwwMDAgcmVxdWVzdHMpIn0seyJjYXJkIjo0LCJkYXRlIjoiRmViIDI0IiwidGV4dCI6IkNFTyBzYXlzIHRoZSBFVEggZ2FwIGlzIGZ1bGx5IGNsb3NlZCwgd2l0aGluIDcyIGhvdXJzIG9mIHRoZSBoYWNrIn0seyJjYXJkIjoxLCJkYXRlIjoiRmViIDI1IiwidGV4dCI6IkxhemFydXNCb3VudHkgd2Vic2l0ZSBsYXVuY2hlZCJ9LHsiY2FyZCI6OCwiZGF0ZSI6IkZlYiAyNiIsInRleHQiOiJGQkkgcHVibGljIHNlcnZpY2UgYW5ub3VuY2VtZW50IGF0dHJpYnV0ZXMgdGhlIHRoZWZ0IHRvIE5vcnRoIEtvcmVhIChUcmFkZXJUcmFpdG9yKSJ9LHsiY2FyZCI6MywiZGF0ZSI6Ik1hciA2IiwidGV4dCI6IlNhZmV7V2FsbGV0fSBwb3N0LW1vcnRlbSB3aXRoIE1hbmRpYW50OiBkZXZlbG9wZXIgbWFjaGluZSwgaGlqYWNrZWQgQVdTIHNlc3Npb24gdG9rZW5zIn0seyJjYXJkIjo1LCJkYXRlIjoiQXByIDIxIiwidGV4dCI6IkJlbiBaaG91IHVwZGF0ZTogMjcuNTklIG9mIGZ1bmRzIGdvbmUgZGFyaywgNjguNTclIHRyYWNlYWJsZSwgMy44NCUgZnJvemVuIn1dLCJ0cmlja3kiOlsiQ2FyZHMgNiBhbmQgOSBoYXBwZW4gYmVmb3JlIHRoZSB0aGVmdC4gTW9zdCB0ZWFtcyB3aWxsIHN0YXJ0IHdpdGggdGhlIGhlaXN0IChDYXJkIDIpLiBUaGUgaGFja2VycyBhY3R1YWxseSBnb3QgaW4gbW9yZSB0aGFuIHR3byB3ZWVrcyBlYXJsaWVyLiIsIkNhcmRzIDYgYW5kIDMgYXJlIGJvdGggYWJvdXQgdGhlIGRldmVsb3BlcidzIGNvbXB1dGVyLiBDYXJkIDYgaXMgdGhlIGJyZWFrLWluIGl0c2VsZi4gQ2FyZCAzIGlzIHRoZSBwdWJsaWMgZXhwbGFuYXRpb24sIGFib3V0IHR3byB3ZWVrcyBhZnRlciB0aGUgdGhlZnQuIiwiQ2FyZCA3IGNvbWVzIGJlZm9yZSBDYXJkIDguIEFuIG9ubGluZSBpbnZlc3RpZ2F0b3IgbmFtZWQgTm9ydGggS29yZWEgb24gdGhlIGRheSBvZiB0aGUgdGhlZnQsIGZpdmUgZGF5cyBiZWZvcmUgdGhlIEZCSSBkaWQuIiwiQ2FyZHMgMTAsIDQgYW5kIDEgZmFsbCB3aXRoaW4gZm91ciBkYXlzLiBGaXJzdCB0aGUgcnVzaCBvZiB3aXRoZHJhd2FscywgdGhlbiB0aGUgcmVwbGFjZWQgRXRoZXIsIHRoZW4gdGhlIGJvdW50eSB3ZWJzaXRlLiBMb2dpYyBoZWxwczogQnliaXQgaGFkIHRvIHN1cnZpdmUgYmVmb3JlIGl0IHdlbnQgaHVudGluZy4iLCJDYXJkIDUgaXMgdGhlIG9ubHkgb25lIGFmdGVyIE1hcmNoLiBJdCBpcyB0aGUgYmFkLW5ld3MgZW5kaW5nOiB0aGUgbG9uZ2VyIHRoZSBodW50IHdlbnQgb24sIHRoZSBtb3JlIG9mIHRoZSBtb25leSBkaXNhcHBlYXJlZC4iXX0="},{"n":5,"title":"Stryker","intro":"In March 2026 a hacker group linked to Iran wiped tens of thousands of laptops and phones at Stryker, one of the world's biggest medical technology companies, in a single morning. It did not lock files or ask for a ransom. Some cards include a true time clue. Put the 10 cards in order, first to last.","cards":[{"id":1,"text":"The day after the wipe, the company tells customers and US regulators that order processing, manufacturing and shipping are still disrupted, but its products in hospitals are not affected and are safe to use."},{"id":2,"text":"The FBI seizes four websites tied to Iran's intelligence ministry, including the hacker group's leak site."},{"id":3,"text":"Early one morning, a remote wipe command erases tens of thousands of company laptops and phones around the world. In Ireland, where about 5,000 people work, staff are sent home."},{"id":4,"text":"At its first-quarter results, the CEO tells investors \u201cThe cyber incident had a big impact on our results\u201d, but the company keeps its full-year targets."},{"id":5,"text":"A US government cyber agency urges all organisations to lock down device management tools like Microsoft Intune, for example by needing a second administrator to approve a device wipe."},{"id":6,"text":"The company says it is fully operational across its global manufacturing network, and its ordering and distribution systems are back."},{"id":7,"text":"The same day as the wipe, a hacker group linked to Iran claims the attack on Telegram. It says it erased more than 200,000 systems, servers and phones and shut down offices in 79 countries."},{"id":8,"text":"The company asks a court to throw out a lawsuit brought by employees. It says its investigation found no evidence that their personal information was accessed."},{"id":9,"text":"The company states plainly: \u201cThis was not a ransomware attack, and there is no evidence of malware deployed to our systems.\u201d Electronic ordering is being restored; until then, orders are taken by hand."},{"id":10,"text":"Twelve days after the wipe, the company changes its story: investigators found the attacker used a malicious file to run commands and hide their activity. It says the attacker has now been removed."}],"key":"eyJvcmRlciI6WzMsNywxLDksNSwyLDEwLDYsNCw4XSwicm93cyI6W3siY2FyZCI6MywiZGF0ZSI6Ik1hciAxMSwgMjAyNiwgZWFybHkgbW9ybmluZyBVVEMiLCJ0ZXh0IjoiSW50dW5lIHdpcGUgY29tbWFuZCBlcmFzZXMgbmVhcmx5IDgwLDAwMCBkZXZpY2VzOyBzdGFmZiBhdCBJcmlzaCBzaXRlcyAoYWJvdXQgNSwwMDAgZW1wbG95ZWVzKSBhcmUgc2VudCBob21lIn0seyJjYXJkIjo3LCJkYXRlIjoiTWFyIDExIiwidGV4dCI6IkhhbmRhbGEgY2xhaW1zIHRoZSBhdHRhY2sgb24gVGVsZWdyYW06IDIwMCwwMDArIGRldmljZXMsIDc5IGNvdW50cmllcyJ9LHsiY2FyZCI6MSwiZGF0ZSI6Ik1hciAxMiIsInRleHQiOiI4LUsgYW5kIENJU08gdXBkYXRlOiBvcmRlcmluZywgbWFudWZhY3R1cmluZywgc2hpcHBpbmcgZGlzcnVwdGVkOyBjb25uZWN0ZWQgcHJvZHVjdHMgc2FmZSJ9LHsiY2FyZCI6OSwiZGF0ZSI6Ik1hciAxNSIsInRleHQiOiJTdHJ5a2VyOiBub3QgYSByYW5zb213YXJlIGF0dGFjaywgbm8gZXZpZGVuY2Ugb2YgbWFsd2FyZSJ9LHsiY2FyZCI6NSwiZGF0ZSI6Ik1hciAxOCIsInRleHQiOiJDSVNBIGFsZXJ0IHVyZ2luZyBJbnR1bmUgaGFyZGVuaW5nIGFuZCBtdWx0aS1hZG1pbiBhcHByb3ZhbCBmb3Igd2lwZXMifSx7ImNhcmQiOjIsImRhdGUiOiJNYXIgMTkiLCJ0ZXh0IjoiRkJJIHNlaXplcyBmb3VyIE1PSVMtbGlua2VkIGRvbWFpbnMsIGluY2x1ZGluZyBIYW5kYWxhJ3MgbGVhayBzaXRlIn0seyJjYXJkIjoxMCwiZGF0ZSI6Ik1hciAyMyIsInRleHQiOiJTdHJ5a2VyIHJldmVhbHMgdGhlIG1hbGljaW91cyBmaWxlIHVzZWQgdG8gaGlkZSBhY3Rpdml0eTsgYXR0YWNrZXIgcmVtb3ZlZCJ9LHsiY2FyZCI6NiwiZGF0ZSI6IkFwciAxIiwidGV4dCI6IlN0cnlrZXIgc2F5cyBpdCBpcyBmdWxseSBvcGVyYXRpb25hbDsgb3JkZXJpbmcgYW5kIGRpc3RyaWJ1dGlvbiByZXN0b3JlZCJ9LHsiY2FyZCI6NCwiZGF0ZSI6IkFwciAzMCIsInRleHQiOiJRMSBlYXJuaW5ncyBjYWxsOiBDRU8gc2F5cyB0aGUgaW5jaWRlbnQgaGFkIGEgYmlnIGltcGFjdDsgZnVsbC15ZWFyIGd1aWRhbmNlIGtlcHQifSx7ImNhcmQiOjgsImRhdGUiOiJKdW5lIDIyIiwidGV4dCI6IlN0cnlrZXIgZmlsZXMgbW90aW9uIHRvIGRpc21pc3MgdGhlIGVtcGxveWVlcycgY2xhc3MgYWN0aW9uIn1dLCJ0cmlja3kiOlsiQ2FyZHMgOSBhbmQgMTAgYXJlIGEgcmV2ZXJzYWwuIE1hbnkgcGVvcGxlIHdpbGwgcHV0IHRoZSBjb25maWRlbnQgbm8tbWFsd2FyZSBzdGF0ZW1lbnQgKENhcmQgOSkgbGFzdCwgYXMgdGhlIGZpbmFsIHdvcmQuIEl0IGNhbWUgZmlyc3QuIENhcmQgMTAncyBjbHVlICh0d2VsdmUgZGF5cyBhZnRlciB0aGUgd2lwZSkgaGVscHMsIGJ1dCB0ZWFtcyBzdGlsbCBoYXZlIHRvIGZpbmQgd2hlbiBDYXJkIDkgaGFwcGVuZWQuIiwiQ2FyZHMgNSBhbmQgMiBhcmUgb25lIGRheSBhcGFydC4gQm90aCBhcmUgdGhlIFVTIGdvdmVybm1lbnQgcmVzcG9uZGluZzogdGhlIHdhcm5pbmcgdG8gZXZlcnlvbmUgZmlyc3QsIHRoZW4gdGhlIEZCSSBzZWl6aW5nIHRoZSB3ZWJzaXRlcy4iLCJDYXJkcyA2IGFuZCA0IGFyZSBib3RoIGFib3V0IHJlY292ZXJ5LiBUaGUgY29tcGFueSBzYWlkIGl0IHdhcyBmdWxseSBiYWNrIChDYXJkIDYpIGEgbW9udGggYmVmb3JlIHRoZSBxdWFydGVybHkgcmVzdWx0cyAoQ2FyZCA0KS4iLCJDYXJkIDggaXMgdGhlIG9ubHkgb25lIGFmdGVyIEFwcmlsLiBFbXBsb3llZXMgc3VlZCB3aXRoaW4gZGF5cyBvZiB0aGUgYXR0YWNrLCBidXQgdGhlIGNvbXBhbnkncyByZXF1ZXN0IHRvIHRocm93IHRoZSBjYXNlIG91dCBjYW1lIG1vcmUgdGhhbiB0aHJlZSBtb250aHMgYWZ0ZXIgdGhlIHdpcGUuIl19"},{"n":6,"title":"Japan's attack wave","intro":"Between September 2025 and October 2026 a run of ransomware attacks and data breaches hit Japanese companies, universities and cloud providers. Put the 12 cards in order, first to last.","cards":[{"id":1,"text":"GMO Internet, the company behind Onamae.com, receives an email demanding about \u00a58 billion and threatening to publish customer information and launch ransomware."},{"id":2,"text":"A senior figure in Japan's ruling party says the country is in a \u201cstate of emergency in cyberspace\u201d after a run of company breaches. The government's cyber office sends advice to businesses the same day."},{"id":3,"text":"Osaka Metropolitan University's IT backbone fails in the early hours. Network, email and portals stop, and all classes are cancelled for the day."},{"id":4,"text":"Asahi, Japan's biggest brewer, says a cyberattack has forced it to suspend orders, shipments and its call centre in Japan."},{"id":5,"text":"Cloud provider IDC Frontier says it found no trace that data inside its customers' virtual servers was viewed or taken out."},{"id":6,"text":"The restaurant group behind Yakiniku King announces that the names, emails and phone numbers of about 10.8 million app members, nearly all of them, have leaked."},{"id":7,"text":"At the attackers' deadline, alleged customer information from GMO Internet's Onamae.com service appears online. The company says no ransomware attack has been confirmed."},{"id":8,"text":"Frozen-food and logistics firm Nichirei confirms that a cyberattack caused its shipping outage and that attackers reached a server holding personal information. KFC Japan has already warned of ingredient shortages."},{"id":9,"text":"IDC Frontier tells customers that data in four zones of its cloud is unlikely to be recovered, and that they will have to rebuild from their own backups."},{"id":10,"text":"Car-sharing service Times Car detects unauthorized access to its web system and warns that member data may have leaked."},{"id":11,"text":"Early in the morning, ransomware stops part of IDC Frontier's cloud, run by a SoftBank subsidiary. Hundreds of companies and local governments lose services."},{"id":12,"text":"GMO Internet confirms malicious programs in some customers' server environments on its Onamae.com Desktop Cloud service."}],"key":"eyJvcmRlciI6WzQsOCwxMCwzLDYsMTEsOSwyLDUsMTIsMSw3XSwicm93cyI6W3siY2FyZCI6NCwiZGF0ZSI6IlNlcHQgMjksIDIwMjUiLCJ0ZXh0IjoiQXNhaGkgc2F5cyBhIGN5YmVyYXR0YWNrIGNhdXNlZCBhIHN5c3RlbSBmYWlsdXJlIGluIEphcGFuOyBvcmRlcnMsIHNoaXBtZW50cyBhbmQgdGhlIGNhbGwgY2VudHJlIGFyZSBzdXNwZW5kZWQifSx7ImNhcmQiOjgsImRhdGUiOiJKdWx5IDE1LCAyMDI2IiwidGV4dCI6Ik5pY2hpcmVpIGNvbmZpcm1zIGEgY3liZXJhdHRhY2sgY2F1c2VkIGl0cyBzaGlwcGluZyBvdXRhZ2UgKGl0IGZpcnN0IHJlcG9ydGVkIHN5c3RlbSBmYWlsdXJlcyBvbiBKdWx5IDEzKTsgS0ZDIEphcGFuIGhhcyBhbHJlYWR5IHdhcm5lZCBvZiBpbmdyZWRpZW50IHNob3J0YWdlcyJ9LHsiY2FyZCI6MTAsImRhdGUiOiJTZXB0IDI1LCAyMDI2IiwidGV4dCI6IlRpbWVzIENhciBkZXRlY3RzIHVuYXV0aG9yaXplZCBhY2Nlc3MgYXQgMDk6MDcgYW5kIGFubm91bmNlcyBhIHBvc3NpYmxlIGxlYWsgKGZpcnN0IHJlcG9ydCk7IGFib3V0IDYuNiBtaWxsaW9uIGFjY291bnRzIGFyZSBjb25maXJtZWQgb24gU2VwdCAyOCJ9LHsiY2FyZCI6MywiZGF0ZSI6Ik9jdCAyIiwidGV4dCI6Ik9zYWthIE1ldHJvcG9saXRhbiBVbml2ZXJzaXR5IG91dGFnZSBmcm9tIGFib3V0IDAwOjMwOyBhbGwgY2xhc3NlcyBjYW5jZWxsZWQgZm9yIHRoZSBkYXkgKGp1ZGdlZCByYW5zb213YXJlIGF0IHRoZSBPY3QgNSBwcmVzcyBjb25mZXJlbmNlKSJ9LHsiY2FyZCI6NiwiZGF0ZSI6Ik9jdCA1IiwidGV4dCI6Ik1vbm9nYXRhcmkgQ29ycG9yYXRpb24gYW5ub3VuY2VzIDEwLDc4OCw5NjMgWWFraW5pa3UgS2luZyBhcHAgbWVtYmVyIHJlY29yZHMgbGVha2VkIn0seyJjYXJkIjoxMSwiZGF0ZSI6Ik9jdCA3LCBhYm91dCAwMzo0MCIsInRleHQiOiJSYW5zb213YXJlIHN0b3BzIHBhcnQgb2YgSURDRiBDbG91ZCBFYXN0IEphcGFuIFJlZ2lvbiAxOyA0OTUgY29tcGFuaWVzIGFuZCBsb2NhbCBnb3Zlcm5tZW50cyBhZmZlY3RlZCJ9LHsiY2FyZCI6OSwiZGF0ZSI6Ik9jdCA4IiwidGV4dCI6IklEQyBGcm9udGllcidzIHRoaXJkIHJlcG9ydDogZGF0YSBpbiBmb3VyIHpvbmVzIGlzIHVubGlrZWx5IHRvIGJlIHJlY292ZXJlZDsgY3VzdG9tZXJzIG11c3QgcmVidWlsZCBmcm9tIHRoZWlyIG93biBiYWNrdXBzIn0seyJjYXJkIjoyLCJkYXRlIjoiT2N0IDkiLCJ0ZXh0IjoiTERQIGN5YmVyc2VjdXJpdHkgY2hpZWYgTWFzYWFraSBUYWlyYSBzYXlzIEphcGFuIGlzIGluIGEgc3RhdGUgb2YgZW1lcmdlbmN5IGluIGN5YmVyc3BhY2U7IHRoZSBOYXRpb25hbCBDeWJlcnNlY3VyaXR5IE9mZmljZSBpc3N1ZXMgYWR2aWNlIHRvIGJ1c2luZXNzZXMifSx7ImNhcmQiOjUsImRhdGUiOiJPY3QgMTQiLCJ0ZXh0IjoiSURDIEZyb250aWVyJ3MgZmlmdGggcmVwb3J0OiBubyB0cmFjZSBvZiBkYXRhIGluIGN1c3RvbWVyIHZpcnR1YWwgc2VydmVycyBiZWluZyB2aWV3ZWQgb3IgdGFrZW4gb3V0In0seyJjYXJkIjoxMiwiZGF0ZSI6Ik9jdCAyMCIsInRleHQiOiJHTU8gSW50ZXJuZXQgY29uZmlybXMgbWFsaWNpb3VzIHByb2dyYW1zIGluIHNvbWUgT25hbWFlLmNvbSBEZXNrdG9wIENsb3VkIHNlcnZlciBlbnZpcm9ubWVudHMifSx7ImNhcmQiOjEsImRhdGUiOiJPY3QgMjEiLCJ0ZXh0IjoiR01PIHJlY2VpdmVzIGFuIGVtYWlsIGRlbWFuZGluZyBhYm91dCDCpTggYmlsbGlvbiJ9LHsiY2FyZCI6NywiZGF0ZSI6Ik9jdCAyNyIsInRleHQiOiJBdHRhY2tlcnMnIG5vb24gZGVhZGxpbmU7IGFsbGVnZWQgZGF0YSBhcHBlYXJzIG9ubGluZSBhdCAxMjozMCBwbTsgR01PJ3MgMTo1NSBwbSB1cGRhdGUgc2F5cyBubyByYW5zb213YXJlIGF0dGFjayBpcyBjb25maXJtZWQifV0sInRyaWNreSI6WyJDYXJkcyA0IGFuZCAxMCBhcmUgYm90aCBsYXRlIFNlcHRlbWJlciwgYnV0IGEgeWVhciBhcGFydC4gVGhlIEFzYWhpIGF0dGFjayAoQ2FyZCA0KSBpcyBmcm9tIDIwMjUgYW5kIHN0YXJ0cyB0aGUgc3RvcnkuIiwiQ2FyZCA4IHNvdW5kcyBsaWtlIGEgcmVwZWF0IG9mIEFzYWhpLCBidXQgaXQgaXMgYSBmcm96ZW4tZm9vZCBzdXBwbGllciBpbiBKdWx5IDIwMjYsIHRoZSBvbmx5IGNhcmQgYmV0d2VlbiB0aGUgdHdvIFNlcHRlbWJlcnMuIiwiQ2FyZCAzIHNvdW5kcyBsaWtlIHRoZSB1bml2ZXJzaXR5IHdhcyBhbHJlYWR5IGtub3duIHRvIGJlIGhpdCBieSByYW5zb213YXJlLiBUaGF0IGp1ZGdlbWVudCBjYW1lIHRocmVlIGRheXMgbGF0ZXIsIG9uIE9jdCA1LiBUaGUgY2FyZCBpcyBwbGFjZWQgYnkgdGhlIG91dGFnZSBvbiBPY3QgMi4iLCJDYXJkIDYgd2FzIGFubm91bmNlZCBvbiBPY3QgNSwgdGhyZWUgZGF5cyBhZnRlciB0aGUgYnJlYWNoIHdhcyBmb3VuZCwgc28gaXQgY29tZXMgYWZ0ZXIgQ2FyZCAzIGV2ZW4gdGhvdWdoIHRoZSBhY2Nlc3Mgd2FzIGNvbmZpcm1lZCBvbiBPY3QgMi4iLCJDYXJkcyAxMSwgOSBhbmQgNSBhcmUgb25lIHN0b3J5IHdpdGggYSByZXZlcnNhbC4gRmlyc3QgdGhlIGF0dGFjaywgdGhlbiB0aGUgYmFkIG5ld3MgdGhhdCBkYXRhIGlzIHVucmVjb3ZlcmFibGUsIHRoZW4gYSB3ZWVrIGxhdGVyIHRoZSBmaW5kaW5nIHRoYXQgbm8gZGF0YSB3YXMgdGFrZW4uIiwiQ2FyZCAyIGlzIG5vdCBhIGdvdmVybm1lbnQgZGVjbGFyYXRpb24sIGFuZCBpdCBmYWxscyBiZXR3ZWVuIENhcmRzIDkgYW5kIDUuIiwiQ2FyZHMgMTIsIDEgYW5kIDcgYXJlIHRoZSBHTU8gc3RvcnkgaW4gb3JkZXI6IHRoZSBtYWxpY2lvdXMgcHJvZ3JhbXMgZmlyc3QsIHRoZSBleHRvcnRpb24gZW1haWwgYSBkYXkgbGF0ZXIsIGFuZCB0aGUgZGVhZGxpbmUgc2l4IGRheXMgYWZ0ZXIgdGhhdC4iXX0="}];
+
+  // ===== Helpers =====
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function decodeKey(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+  }
+  const ROUNDS = {};
+  DATA.forEach((r) => { ROUNDS[r.n] = Object.assign({}, r, { answer: decodeKey(r.key) }); });
+
+  function randInt(n) { // unbiased integer in [0, n)
+    if (window.crypto && crypto.getRandomValues) {
+      const buf = new Uint32Array(1);
+      const limit = Math.floor(0x100000000 / n) * n;
+      let x;
+      do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+      return x % n;
+    }
+    return Math.floor(Math.random() * n);
+  }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = randInt(i + 1);
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function correctCount(n, order) {
+    const ans = ROUNDS[n].answer.order;
+    let c = 0;
+    for (let i = 0; i < ans.length; i++) if (order[i] === ans[i]) c++;
+    return c;
+  }
+  function startingOrder(n) {
+    const ids = ROUNDS[n].cards.map((c) => c.id);
+    const maxRight = Math.floor(ids.length / 4);
+    let order;
+    do { order = shuffle(ids); } while (correctCount(n, order) > maxRight || correctCount(n, order) === ids.length);
+    return order;
+  }
+  function samePair(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    const s = a.slice().sort().join(',');
+    return s === b.slice().sort().join(',');
+  }
+  function pickRounds(avoid) {
+    const all = Object.keys(ROUNDS).map(Number);
+    let pick;
+    do { pick = shuffle(all).slice(0, INCIDENTS_PER_GAME); } while (samePair(pick, avoid));
+    return pick;
+  }
+  function forcedRounds() {
+    try {
+      const p = new URLSearchParams(location.search).get('rounds');
+      if (!p) return null;
+      const nums = p.split(',').map((s) => Number(s.trim()));
+      const ok = nums.length >= 1 && nums.every((x) => ROUNDS[x]) && new Set(nums).size === nums.length;
+      if (!ok) { console.warn('Ignoring invalid ?rounds= parameter: ' + p); return null; }
+      return nums;
+    } catch (e) { return null; }
+  }
+  function announce(msg) {
+    const el = $('live');
+    el.textContent = '';
+    setTimeout(() => { el.textContent = msg; }, 30);
+  }
+  function svgIcon(path, size, sw) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', size); svg.setAttribute('height', size); svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', sw || 2.4); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    const p = document.createElementNS(ns, 'path'); p.setAttribute('d', path); svg.appendChild(p);
+    return svg;
+  }
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  // ===== State =====
+  let state = null;   // { rounds, orders, solved, checked, moves, hints, active }
+  let lastPair = null;
+  const views = {};   // per round: { tab, panel, list, items: {id: li}, ... }
+
+  function save() {
+    try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ state, lastPair })); } catch (e) { /* storage unavailable */ }
+  }
+  function load() {
+    try {
+      const raw = sessionStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      lastPair = Array.isArray(obj.lastPair) ? obj.lastPair : null;
+      const s = obj.state;
+      if (!s || !Array.isArray(s.rounds) || !s.rounds.length) return null;
+      for (const n of s.rounds) {
+        if (!ROUNDS[n] || !Array.isArray(s.orders[n])) return null;
+        const want = ROUNDS[n].cards.map((c) => c.id).sort((a, b) => a - b).join(',');
+        if (s.orders[n].slice().sort((a, b) => a - b).join(',') !== want) return null;
+      }
+      if (typeof s.hints !== 'number') s.hints = 0;
+      return s;
+    } catch (e) { return null; }
+  }
+
+  function newGame(rounds) {
+    const orders = {}, solved = {}, checked = {};
+    rounds.forEach((n) => { orders[n] = startingOrder(n); solved[n] = false; checked[n] = correctCount(n, orders[n]); });
+    lastPair = rounds.slice();
+    state = { rounds: rounds.slice(), orders, solved, checked, moves: 0, hints: 0, active: rounds[0] };
+    save();
+    showGame();
+  }
+
+  // ===== Rendering =====
+  function showStart() {
+    $('game').hidden = true; $('finish').hidden = true; $('start').hidden = false;
+  }
+
+  function showGame() {
+    $('start').hidden = true; $('game').hidden = false;
+    buildViews();
+    selectTab(state.active, false);
+    updateMeter(true);
+    state.rounds.forEach((n) => { if (state.solved[n]) markSolved(n, false); });
+    refreshDone(false);
+    renderStats();
+    window.scrollTo(0, 0);
+  }
+
+  function buildViews() {
+    const tabs = $('tabs'), panels = $('panels');
+    tabs.replaceChildren(); panels.replaceChildren();
+    Object.keys(views).forEach((k) => delete views[k]);
+    const total = state.rounds.length;
+    state.rounds.forEach((n, idx) => {
+      const r = ROUNDS[n];
+      const v = { n, items: {} };
+      views[n] = v;
+
+      // Tab
+      const tab = el('button', 'tab');
+      tab.type = 'button'; tab.id = 'tab-' + n;
+      tab.setAttribute('role', 'tab'); tab.setAttribute('aria-controls', 'panel-' + n);
+      tab.appendChild(el('span', 't-kicker', 'Incident ' + (idx + 1) + ' of ' + total));
+      tab.appendChild(el('span', 't-title', r.title));
+      const tm = el('span', 't-meter');
+      const tt = el('span', 't-track'); const tf = el('span', 't-fill'); tt.appendChild(tf);
+      const tc = el('span', 't-count', '');
+      tm.appendChild(tt); tm.appendChild(tc);
+      tab.appendChild(tm);
+      const tick = el('span', 't-tick'); tick.appendChild(svgIcon('M5 12.5l4.5 4.5L19 7.5', 14, 3.2));
+      tab.appendChild(tick);
+      const tSolved = el('span', 'sr-only', ''); tab.appendChild(tSolved);
+      tab.addEventListener('click', () => selectTab(n, true));
+      tab.addEventListener('keydown', onTabKey);
+      tabs.appendChild(tab);
+      Object.assign(v, { tab, tabFill: tf, tabCount: tc, tabSolved: tSolved });
+
+      // Panel
+      const panel = el('section', 'panel');
+      panel.id = 'panel-' + n;
+      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', 'tab-' + n);
+      if (n === 2) {
+        const note = el('p', 'care-note');
+        note.appendChild(svgIcon('M12 8v5M12 16.5v.5M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z', 20, 2.2));
+        note.appendChild(el('span', '', 'This incident involved real loss of life. It is covered factually.'));
+        panel.appendChild(note);
+      }
+      const h = el('h2', ''); h.appendChild(el('span', '', r.title));
+      const badge = el('span', 'solved-badge'); badge.appendChild(svgIcon('M5 12.5l4.5 4.5L19 7.5', 14, 3.2));
+      badge.appendChild(el('span', '', 'Solved')); badge.hidden = true;
+      h.appendChild(badge);
+      panel.appendChild(h);
+      panel.appendChild(el('p', 'intro', r.intro));
+      const hintBox = el('div', 'hint-box');
+      hintBox.appendChild(el('p', 'hint-text', 'Need a hint? Highlight the cards that are already in the right place. Each hint is counted.'));
+      const hintBtn = el('button', 'btn secondary small hint-btn', 'Show cards in the right place');
+      hintBtn.type = 'button';
+      hintBtn.addEventListener('click', () => showHint(n));
+      hintBox.appendChild(hintBtn);
+      const hintMsg = el('p', 'hint-msg', '');
+      hintBox.appendChild(hintMsg);
+      panel.appendChild(hintBox);
+      panel.appendChild(el('div', 'end-label', 'Earliest'));
+      const list = el('ol', 'cards');
+      list.setAttribute('aria-label', r.title + ' cards, earliest at the top');
+      const byId = {};
+      r.cards.forEach((c) => { byId[c.id] = c; });
+      state.orders[n].forEach((id) => {
+        const li = makeCard(n, byId[id]);
+        v.items[id] = li;
+        list.appendChild(li);
+      });
+      panel.appendChild(list);
+      panel.appendChild(el('div', 'end-label', 'Latest'));
+
+      const under = el('div', 'under-list');
+      if (!LIVE_METER) {
+        const check = el('button', 'btn', 'Check my order');
+        check.type = 'button'; check.className = 'btn check-btn';
+        check.addEventListener('click', checkOrder);
+        under.appendChild(check);
+        v.checkBtn = check;
+      }
+      panel.appendChild(under);
+      panel.appendChild(el('p', 'tip', 'Stuck? Search the incident name online to find its timeline.'));
+      const reveal = el('div', 'reveal'); reveal.hidden = true;
+      panel.appendChild(reveal);
+      panels.appendChild(panel);
+      Object.assign(v, { panel, list, badge, reveal, under, hintBox, hintMsg });
+      refreshArrows(n);
+    });
+  }
+
+  function makeCard(n, card) {
+    const li = el('li', 'card');
+    li.tabIndex = 0;
+    li.dataset.id = card.id;
+    const grip = el('span', 'grip');
+    grip.setAttribute('aria-hidden', 'true');
+    grip.title = 'Drag to move';
+    grip.appendChild(svgIcon('M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01', 22, 3.4));
+    const body = el('div', 'body');
+    const tag = el('span', 'hint-tag');
+    tag.appendChild(svgIcon('M5 12.5l4.5 4.5L19 7.5', 12, 3.4));
+    tag.appendChild(el('span', '', 'Right place'));
+    body.appendChild(tag);
+    body.appendChild(el('span', 'card-no', 'Card ' + card.id));
+    const p = el('p', 'card-text', card.text);
+    p.id = 'ct-' + n + '-' + card.id;
+    body.appendChild(p);
+    const arrows = el('div', 'arrows');
+    const up = el('button', 'arrow up'); up.type = 'button';
+    up.setAttribute('aria-label', 'Move card ' + card.id + ' up');
+    up.appendChild(svgIcon('M6 15l6-6 6 6', 22));
+    const down = el('button', 'arrow down'); down.type = 'button';
+    down.setAttribute('aria-label', 'Move card ' + card.id + ' down');
+    down.appendChild(svgIcon('M6 9l6 6 6-6', 22));
+    arrows.appendChild(up); arrows.appendChild(down);
+    li.appendChild(grip); li.appendChild(body); li.appendChild(arrows);
+
+    up.addEventListener('click', () => moveBy(n, card.id, -1, up));
+    down.addEventListener('click', () => moveBy(n, card.id, 1, down));
+    li.addEventListener('keydown', (e) => {
+      if (e.target !== li) return;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveBy(n, card.id, e.key === 'ArrowUp' ? -1 : 1, li);
+      }
+    });
+    li.addEventListener('pointerdown', (e) => onPointerDown(e, n, li));
+    li.addEventListener('contextmenu', (e) => { if (e.target.closest('.grip')) e.preventDefault(); });
+    return li;
+  }
+
+  function refreshArrows(n) {
+    const v = views[n], order = state.orders[n], locked = state.solved[n];
+    order.forEach((id, i) => {
+      const li = v.items[id];
+      li.querySelector('.up').disabled = locked || i === 0;
+      li.querySelector('.down').disabled = locked || i === order.length - 1;
+      li.setAttribute('aria-label', 'Card ' + id + ', position ' + (i + 1) + ' of ' + order.length +
+        (locked ? '' : '. Use arrow up or down to move.'));
+      li.setAttribute('aria-describedby', 'ct-' + n + '-' + id);
+    });
+    v.list.classList.toggle('locked', locked);
+  }
+
+  function selectTab(n, focus) {
+    state.active = n;
+    state.rounds.forEach((m) => {
+      const v = views[m], on = m === n;
+      v.tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      v.tab.tabIndex = on ? 0 : -1;
+      v.panel.hidden = !on;
+    });
+    if (focus) views[n].tab.focus();
+    save();
+  }
+  function onTabKey(e) {
+    const i = state.rounds.indexOf(state.active);
+    let j = null;
+    if (e.key === 'ArrowRight') j = (i + 1) % state.rounds.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + state.rounds.length) % state.rounds.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = state.rounds.length - 1;
+    if (j !== null) { e.preventDefault(); selectTab(state.rounds[j], true); }
+  }
+
+  // ===== Moves =====
+  function flip(n, mutate) {
+    const v = views[n];
+    const items = Object.values(v.items);
+    const before = reduceMotion() ? null : new Map(items.map((li) => [li, li.getBoundingClientRect().top]));
+    mutate();
+    if (!before) return;
+    items.forEach((li) => {
+      const dy = before.get(li) - li.getBoundingClientRect().top;
+      if (!dy) return;
+      li.style.transition = 'none';
+      li.style.transform = 'translateY(' + dy + 'px)';
+      requestAnimationFrame(() => {
+        li.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)';
+        li.style.transform = '';
+        li.addEventListener('transitionend', () => { li.style.transition = ''; }, { once: true });
+      });
+    });
+  }
+
+  function applyOrder(n, order) {
+    const v = views[n];
+    order.forEach((id) => v.list.appendChild(v.items[id]));
+  }
+
+  function moveBy(n, id, delta, refocus) {
+    if (state.solved[n]) return;
+    const order = state.orders[n].slice();
+    const i = order.indexOf(id), j = i + delta;
+    if (j < 0 || j >= order.length) return;
+    order.splice(i, 1); order.splice(j, 0, id);
+    flip(n, () => applyOrder(n, order));
+    commitMove(n, order);
+    // keep focus on the control that was used, unless it became disabled at the end of the list
+    let target = refocus;
+    if (!target || target.disabled) target = views[n].items[id];
+    target.focus({ preventScroll: false });
+    announce('Card ' + id + ' moved to position ' + (j + 1) + ' of ' + order.length + '.');
+  }
+
+  // ===== Hints =====
+  // A hint marks the cards that are right at this moment; it clears on the next move in that incident.
+  function showHint(n) {
+    if (state.solved[n]) return;
+    const v = views[n], ans = ROUNDS[n].answer.order, order = state.orders[n];
+    state.hints++;
+    $('hints').textContent = state.hints;
+    let right = 0;
+    order.forEach((id, i) => {
+      const ok = id === ans[i];
+      if (ok) right++;
+      v.items[id].classList.toggle('hint-right', ok);
+    });
+    const msg = right === 0
+      ? 'None of these cards are in the right place yet.'
+      : right + ' of ' + order.length + ' cards are in the right place, marked green with a tick. The marks clear when you move a card.';
+    v.hintMsg.textContent = msg;
+    announce(msg);
+    save();
+  }
+  function clearHint(n) {
+    const v = views[n];
+    Object.values(v.items).forEach((li) => li.classList.remove('hint-right'));
+    v.hintMsg.textContent = '';
+  }
+
+  function commitMove(n, order) {
+    clearHint(n);
+    state.orders[n] = order;
+    state.moves++;
+    $('moves').textContent = state.moves;
+    refreshArrows(n);
+    if (LIVE_METER) evaluate();
+    else { $('meterPending').hidden = false; }
+    save();
+  }
+
+  function evaluate() {
+    state.rounds.forEach((n) => { state.checked[n] = correctCount(n, state.orders[n]); });
+    updateMeter(false);
+    let newly = false;
+    state.rounds.forEach((n) => {
+      if (!state.solved[n] && state.checked[n] === state.orders[n].length) {
+        state.solved[n] = true; newly = true;
+        markSolved(n, true);
+      }
+    });
+    if (newly) refreshDone(true);
+    save();
+  }
+
+  function checkOrder() {
+    $('meterPending').hidden = true;
+    evaluate();
+    if (!state.rounds.every((n) => state.solved[n])) {
+      const c = state.rounds.reduce((a, n) => a + state.checked[n], 0);
+      const t = state.rounds.reduce((a, n) => a + state.orders[n].length, 0);
+      announce(c + ' of ' + t + ' cards in the right place.');
+    }
+  }
+
+  // ===== Meter =====
+  let shownPct = 0, pctAnim = null;
+  function updateMeter(instant) {
+    let c = 0, t = 0;
+    state.rounds.forEach((n) => {
+      const len = state.orders[n].length, cn = state.checked[n];
+      c += cn; t += len;
+      const v = views[n];
+      v.tabFill.style.width = (100 * cn / len) + '%';
+      v.tabCount.textContent = cn + '/' + len;
+      v.tab.setAttribute('aria-label', v.tab.querySelector('.t-kicker').textContent + ': ' + ROUNDS[n].title +
+        ', ' + cn + ' of ' + len + ' in the right place' + (state.solved[n] ? ', solved' : ''));
+    });
+    const pct = t ? Math.floor((100 * c) / t) : 0;
+    const meter = $('meter');
+    meter.dataset.correct = c; meter.dataset.total = t; meter.dataset.percent = pct;
+    $('meterSub').textContent = c + ' of ' + t + ' cards in the right place';
+    $('meterTrack').setAttribute('aria-valuenow', pct);
+    $('meterTrack').setAttribute('aria-valuetext', pct + '% complete');
+    const fill = $('meterFill');
+    fill.style.width = pct + '%';
+    fill.classList.toggle('done', pct === 100);
+    if (pctAnim) cancelAnimationFrame(pctAnim);
+    if (instant || reduceMotion()) { shownPct = pct; $('meterPct').textContent = pct + '% complete'; return; }
+    const from = shownPct, t0 = performance.now(), dur = 350;
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      shownPct = Math.round(from + (pct - from) * (1 - Math.pow(1 - k, 3)));
+      $('meterPct').textContent = shownPct + '% complete';
+      if (k < 1) pctAnim = requestAnimationFrame(step); else { shownPct = pct; pctAnim = null; }
+    };
+    pctAnim = requestAnimationFrame(step);
+  }
+
+  // ===== Solved / finish =====
+  function markSolved(n, fresh) {
+    const v = views[n], ans = ROUNDS[n].answer;
+    v.badge.hidden = false;
+    v.tab.classList.add('solved');
+    v.tabSolved.textContent = ' (solved)';
+    if (v.checkBtn) v.checkBtn.hidden = true;
+    clearHint(n);
+    v.hintBox.hidden = true;
+    refreshArrows(n);
+    Object.values(v.items).forEach((li) => li.classList.remove('mouse-grab'));
+
+    const box = v.reveal;
+    box.replaceChildren();
+    box.appendChild(el('h3', '', 'What really happened'));
+    const ol = el('ol', 'key');
+    ans.rows.forEach((row, i) => {
+      const li = el('li');
+      const pos = el('span', 'pos', String(i + 1)); pos.setAttribute('aria-hidden', 'true');
+      const d = el('div', 'date', row.date);
+      d.appendChild(el('small', '', 'Card ' + row.card));
+      li.appendChild(pos); li.appendChild(d); li.appendChild(el('p', 'what', row.text));
+      ol.appendChild(li);
+    });
+    box.appendChild(ol);
+    box.appendChild(el('h4', '', 'Why it is tricky'));
+    const ul = el('ul', 'tricky');
+    ans.tricky.forEach((t) => ul.appendChild(el('li', '', t)));
+    box.appendChild(ul);
+    box.hidden = false;
+    if (fresh) announce(ROUNDS[n].title + ' solved! The real timeline is shown below the cards.');
+  }
+
+  function refreshDone(fresh) {
+    const all = state.rounds.every((n) => state.solved[n]);
+    $('doneBanner').hidden = !all;
+    if (!all) return;
+    save();
+    if (fresh) {
+      reportToHub({
+        status: 'pass', hints: state.hints, durationSec: Math.round((state.finishedAt - state.startedAt) / 1000),
+        details: { moves: state.moves, incidents: state.rounds.map((n) => ROUNDS[n].title) }
+      });
+      openFinish();
+    }
+  }
+
+  // Escape Hub bridge (no-op when played standalone)
+  function reportToHub(r) {
+    try { if (window.parent !== window) window.parent.postMessage(Object.assign({ type: 'escape-hub:result', puzzle: 4 }, r), '*'); } catch (e) { /* ignore */ }
+  }
+
+  function openFinish() {
+    $('finMoves').textContent = state.moves;
+    $('finHints').textContent = state.hints;
+    const reward = $('reward');
+    reward.hidden = !FINAL_MESSAGE;
+    reward.textContent = FINAL_MESSAGE;
+    $('finish').hidden = false;
+    $('finishTitle').focus();
+  }
+  function closeFinish() {
+    $('finish').hidden = true;
+    $('bannerAgain').focus();
+  }
+
+  function playAgain() {
+    $('finish').hidden = true;
+    try {
+      if (new URLSearchParams(location.search).has('rounds')) {
+        history.replaceState(null, '', location.pathname + location.hash);
+      }
+    } catch (e) { /* ignore */ }
+    newGame(pickRounds(lastPair));
+  }
+
+  function renderStats() {
+    $('moves').textContent = state.moves;
+    $('hints').textContent = state.hints;
+  }
+
+  // ===== Drag and drop (Pointer Events) =====
+  let drag = null;
+  const EDGE = 70, MAX_SPEED = 18;
+
+  function onPointerDown(e, n, li) {
+    if (drag || state.solved[n]) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    if (e.target.closest('button')) return;
+    const onGrip = !!e.target.closest('.grip');
+    // Touch and pen only drag from the grip so the rest of the card still scrolls the page.
+    if (e.pointerType !== 'mouse' && !onGrip) return;
+    const rect = li.getBoundingClientRect();
+    drag = {
+      n, li, id: Number(li.dataset.id), pointerId: e.pointerId,
+      startX: e.clientX, startY: e.clientY, y: e.clientY,
+      offsetY: e.clientY - rect.top, started: false, captureEl: e.currentTarget,
+      threshold: onGrip ? 2 : 6, scrollRaf: null, placeholder: null,
+    };
+    if (onGrip) e.preventDefault();
+    try { li.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+    window.addEventListener('keydown', onDragKey);
+  }
+
+  function beginDrag() {
+    const d = drag, li = d.li, rect = li.getBoundingClientRect();
+    d.started = true;
+    d.originalOrder = state.orders[d.n].slice();
+    const ph = el('li', 'placeholder');
+    ph.setAttribute('aria-hidden', 'true');
+    ph.style.height = rect.height + 'px';
+    li.parentNode.insertBefore(ph, li);
+    d.placeholder = ph;
+    li.style.width = rect.width + 'px';
+    li.style.left = rect.left + 'px';
+    li.style.top = rect.top + 'px';
+    li.classList.add('lifted');
+    document.body.style.cursor = 'grabbing';
+    autoScrollLoop();
+  }
+
+  function onPointerMove(e) {
+    const d = drag;
+    if (!d || e.pointerId !== d.pointerId) return;
+    d.y = e.clientY;
+    if (!d.started) {
+      if (Math.abs(e.clientY - d.startY) < d.threshold && Math.abs(e.clientX - d.startX) < d.threshold) return;
+      beginDrag();
+    }
+    e.preventDefault();
+    positionDragged();
+  }
+
+  function positionDragged() {
+    const d = drag;
+    d.li.style.top = (d.y - d.offsetY) + 'px';
+    const list = views[d.n].list;
+    const others = Array.from(list.children).filter((c) => c !== d.li && c !== d.placeholder);
+    const centre = d.y - d.offsetY + d.li.offsetHeight / 2;
+    let before = null;
+    for (const c of others) {
+      const r = c.getBoundingClientRect();
+      if (centre < r.top + r.height / 2) { before = c; break; }
+    }
+    if (before) { if (d.placeholder.nextSibling !== before) list.insertBefore(d.placeholder, before); }
+    else if (list.lastElementChild !== d.placeholder) list.appendChild(d.placeholder);
+  }
+
+  function autoScrollLoop() {
+    const d = drag;
+    if (!d || !d.started) return;
+    const top = document.querySelector('.topbar').getBoundingClientRect().bottom;
+    const vh = window.innerHeight;
+    let speed = 0;
+    if (d.y < top + EDGE) speed = -MAX_SPEED * Math.min(1, (top + EDGE - d.y) / EDGE);
+    else if (d.y > vh - EDGE) speed = MAX_SPEED * Math.min(1, (d.y - (vh - EDGE)) / EDGE);
+    if (speed) {
+      const prev = window.scrollY;
+      window.scrollBy(0, speed);
+      if (window.scrollY !== prev) positionDragged();
+    }
+    d.scrollRaf = requestAnimationFrame(autoScrollLoop);
+  }
+
+  function endDrag(cancel) {
+    const d = drag;
+    drag = null;
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('pointercancel', onPointerUp);
+    window.removeEventListener('keydown', onDragKey);
+    try { d.li.releasePointerCapture(d.pointerId); } catch (err) { /* ignore */ }
+    if (!d.started) return;
+    if (d.scrollRaf) cancelAnimationFrame(d.scrollRaf);
+    document.body.style.cursor = '';
+    const li = d.li, ph = d.placeholder;
+    const from = li.getBoundingClientRect();
+    li.classList.remove('lifted');
+    li.style.width = li.style.left = li.style.top = '';
+    if (cancel) { ph.remove(); applyOrder(d.n, d.originalOrder); }
+    else { ph.replaceWith(li); }
+    if (!reduceMotion()) {
+      const to = li.getBoundingClientRect();
+      li.style.transition = 'none';
+      li.style.transform = 'translateY(' + (from.top - to.top) + 'px)';
+      requestAnimationFrame(() => {
+        li.style.transition = 'transform .18s ease-out';
+        li.style.transform = '';
+        li.addEventListener('transitionend', () => { li.style.transition = ''; }, { once: true });
+      });
+    }
+    const order = Array.from(views[d.n].list.children).map((c) => Number(c.dataset.id));
+    li.focus({ preventScroll: true });
+    if (order.join(',') !== state.orders[d.n].join(',')) {
+      commitMove(d.n, order);
+      announce('Card ' + d.id + ' moved to position ' + (order.indexOf(d.id) + 1) + ' of ' + order.length + '.');
+    }
+  }
+  function onPointerUp(e) {
+    // A cancelled pointer (e.g. the browser took over) still drops the card where the gap is.
+    if (drag && e.pointerId === drag.pointerId) endDrag(false);
+  }
+  function onDragKey(e) {
+    if (drag && drag.started && e.key === 'Escape') { e.preventDefault(); endDrag(true); }
+  }
+
+  // ===== Wiring =====
+  $('startBtn').addEventListener('click', () => {
+    const forced = forcedRounds();
+    newGame(forced || pickRounds(lastPair));
+  });
+  $('restartBtn').addEventListener('click', () => {
+    if (window.confirm('Restart? Both incidents will be reshuffled and your moves and hints reset.')) {
+      newGame(state.rounds);
+      announce('Game restarted.');
+    }
+  });
+  $('againBtn').addEventListener('click', playAgain);
+  $('bannerAgain').addEventListener('click', playAgain);
+  $('reviewBtn').addEventListener('click', closeFinish);
+  $('finish').addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFinish(); });
+  $('finish').addEventListener('click', (e) => { if (e.target === $('finish')) closeFinish(); });
+
+  // Mouse users can grab the whole card; show that affordance only for fine pointers.
+  if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
+    document.addEventListener('pointerover', (e) => {
+      const li = e.target.closest && e.target.closest('.card');
+      if (li && !li.closest('.locked') && !e.target.closest('button')) li.classList.add('mouse-grab');
+    });
+  }
+
+  // ===== Boot =====
+  (function boot() {
+    const saved = load();
+    const forced = forcedRounds();
+    if (saved && (!forced || samePair(forced, saved.rounds))) {
+      state = saved;
+      showGame();
+      return;
+    }
+    showStart();
+    $('startBtn').focus();
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# ---- Secrets: never commit ----
+.env
+.env.*
+*.env
+!.env.example
+answers.private.json
+
+# ---- Hub runtime data (team results) ----
+hub/data/
+
+# ---- Facilitator docs: they contain the answer keys ----
+# Note: puzzle 4's build script reads its doc, so keep a local copy to rebuild.
+puzzle */docs/
+
+# ---- Puzzle 5: these hold the plaintext answers (needed only to regenerate data/answers.json) ----
+puzzle 5/picture-this/tools/make-answers.mjs
+puzzle 5/picture-this/tests/
+
+# ---- Dependencies, test and build output ----
+node_modules/
+test-results/
+*.tmp
+
+# ---- Logs ----
+*.log
+npm-debug.log*
+
+# ---- Claude Code per-user settings ----
+**/.claude/settings.local.json
+
+# ---- Editors and OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini

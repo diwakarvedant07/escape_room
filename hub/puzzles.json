@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "title": "Phish or Legit?",
+    "blurb": "Read 10 emails, call each one Phish or Legit, and unscramble the password.",
+    "file": "../puzzle 1/dist/game.html"
+  },
+  {
+    "id": 2,
+    "title": "Ransomware Recovery",
+    "blurb": "Decode 10 clues to rebuild the decryption key before the clock runs out.",
+    "file": "../puzzle 2/index.html"
+  },
+  {
+    "id": 3,
+    "title": "Breaking News: Cyber Edition",
+    "blurb": "A quick-fire quiz on the biggest cyber incidents of 2026.",
+    "file": "../puzzle 3/index.html"
+  },
+  {
+    "id": 4,
+    "title": "Cyber Timeline",
+    "blurb": "Put the events of real attacks back in the order they happened.",
+    "file": "../puzzle 4/cyber-timeline-game.html"
+  },
+  {
+    "id": 5,
+    "title": "Picture This",
+    "blurb": "Case File: Orbit Financial.",
+    "file": null
+  },
+  {
+    "id": 6,
+    "title": "Log Detective",
+    "blurb": "Dig through the server logs and file the incident report.",
+    "file": "../puzzle 6/puzzle6.html"
+  },
+  {
+    "id": 7,
+    "title": "Hollywood Hacked",
+    "blurb": "Rank hacker films and series by how real the hacking is.",
+    "file": "../puzzle 7/index.html"
+  }
+]

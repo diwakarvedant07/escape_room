@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "note": "Not secret. The simulation searches this graph; x/y are layout positions in a 1120x560 SVG.",
+  "start": "OUT",
+  "goal": "PAY",
+  "nodes": [
+    {
+      "id": "OUT",
+      "label": "OUT",
+      "desc": "Attacker outside",
+      "x": 100,
+      "y": 300
+    },
+    {
+      "id": "FLOOR",
+      "label": "FLOOR",
+      "desc": "Inside Floor 4",
+      "x": 330,
+      "y": 110
+    },
+    {
+      "id": "CREDS",
+      "label": "CREDS",
+      "desc": "Holds n.rao's password",
+      "x": 580,
+      "y": 210
+    },
+    {
+      "id": "SESSION",
+      "label": "SESSION",
+      "desc": "Holds n.rao session / token",
+      "x": 820,
+      "y": 360
+    },
+    {
+      "id": "PAY",
+      "label": "PAY",
+      "desc": "Fraudulent payment released",
+      "x": 1020,
+      "y": 290
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "OUT",
+      "to": "FLOOR",
+      "route": "Tailgate through D-3",
+      "scene": 4,
+      "bend": 0
+    },
+    {
+      "id": "e2",
+      "from": "FLOOR",
+      "to": "CREDS",
+      "route": "Sticky note, desk 4-17",
+      "scene": 1,
+      "bend": -60
+    },
+    {
+      "id": "e3",
+      "from": "FLOOR",
+      "to": "CREDS",
+      "route": "Whiteboard in MR-2",
+      "scene": 10,
+      "bend": 60
+    },
+    {
+      "id": "e4",
+      "from": "OUT",
+      "to": "CREDS",
+      "route": "QR credential-harvest page",
+      "scene": 6,
+      "bend": 0
+    },
+    {
+      "id": "e5",
+      "from": "CREDS",
+      "to": "SESSION",
+      "route": "Password + MFA push fatigue",
+      "scene": 8,
+      "bend": 0
+    },
+    {
+      "id": "e6",
+      "from": "OUT",
+      "to": "SESSION",
+      "route": "Malicious OAuth app consent",
+      "scene": 3,
+      "bend": 150
+    },
+    {
+      "id": "e7",
+      "from": "SESSION",
+      "to": "PAY",
+      "route": "CEO impersonation, bank-detail change",
+      "scene": 9,
+      "bend": -80
+    },
+    {
+      "id": "e8",
+      "from": "SESSION",
+      "to": "PAY",
+      "route": "Single shared login (no real checker)",
+      "scene": 5,
+      "bend": 80
+    }
+  ],
+  "maxControls": 3,
+  "controls": [
+    {
+      "id": "T1",
+      "name": "Anti-tailgating door control (turnstile / anti-passback)",
+      "cuts": [
+        "e1"
+      ]
+    },
+    {
+      "id": "T2",
+      "name": "Clean-desk and whiteboard sweeps",
+      "cuts": [
+        "e2",
+        "e3"
+      ]
+    },
+    {
+      "id": "T3",
+      "name": "Number-matching MFA with push rate limits",
+      "cuts": [
+        "e5"
+      ]
+    },
+    {
+      "id": "T4",
+      "name": "OAuth admin-consent governance",
+      "cuts": [
+        "e6"
+      ]
+    },
+    {
+      "id": "T5",
+      "name": "Out-of-band payment callback verification",
+      "cuts": [
+        "e7"
+      ]
+    },
+    {
+      "id": "T6",
+      "name": "Secure web gateway (URL / QR filtering)",
+      "cuts": [
+        "e4"
+      ]
+    },
+    {
+      "id": "T7",
+      "name": "Maker-checker dual approval on payments",
+      "cuts": [
+        "e8"
+      ]
+    },
+    {
+      "id": "T8",
+      "name": "DLP / CASB for public AI tools",
+      "cuts": []
+    },
+    {
+      "id": "T9",
+      "name": "Automatic screen-lock policy",
+      "cuts": []
+    }
+  ]
+}

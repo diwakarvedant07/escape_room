@@ -1,0 +1,11 @@
+# Secret answer content and passwords: never commit
+answers.private.json
+.env
+.env.*
+*.env
+
+# The facilitator source docs contain the answer keys
+docs/
+
+node_modules/
+test-results/

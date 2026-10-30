@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Cyber Timeline</title>
+<style>
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --ink: #0f172a;
+    --ink-2: #334155;
+    --muted: #556070;
+    --line: #cbd3df;
+    --accent: #1d4ed8;
+    --accent-ink: #ffffff;
+    --accent-soft: #dbe6ff;
+    --good: #0f7a3d;
+    --good-soft: #dcf5e6;
+    --warn-soft: #fff4d6;
+    --warn-line: #e3b341;
+    --focus: #f59e0b;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 1px 1px rgba(15, 23, 42, .04);
+    --lift: 0 18px 40px rgba(15, 23, 42, .28), 0 4px 10px rgba(15, 23, 42, .18);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 12px; }
+  [hidden] { display: none !important; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 10px 18px; border-radius: 10px;
+    border: 2px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+    font-weight: 650; cursor: pointer; text-decoration: none;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.secondary { background: var(--surface); color: var(--accent); }
+  .btn.small { min-height: 44px; padding: 6px 12px; font-size: 14px; }
+  .btn.big { min-height: 60px; padding: 14px 40px; font-size: 20px; border-radius: 14px; }
+
+  /* ---------- Start screen ---------- */
+  #start { min-height: 100vh; min-height: 100svh; display: flex; align-items: center; }
+  .hero { text-align: center; padding: 40px 8px; width: 100%; }
+  .hero .logo {
+    display: inline-flex; width: 72px; height: 72px; border-radius: 20px;
+    background: var(--ink); color: #fff; align-items: center; justify-content: center; margin-bottom: 18px;
+  }
+  .hero h1 { font-size: clamp(34px, 9vw, 54px); line-height: 1.05; margin: 0 0 16px; letter-spacing: -.02em; }
+  .hero p { margin: 0 auto; max-width: 30em; color: var(--ink-2); font-size: 17px; }
+  .hero .actions { margin-top: 28px; }
+  .resume-note { margin-top: 14px; color: var(--muted); font-size: 14px; }
+
+  /* ---------- Sticky top bar ---------- */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 10px rgba(15, 23, 42, .06);
+  }
+  .topbar .wrap { padding-top: 8px; padding-bottom: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .brand { font-weight: 750; font-size: 15px; margin-right: auto; }
+  .stats { display: flex; gap: 12px; font-size: 14px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .stats b { color: var(--ink); }
+  .meter-text { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; margin-top: 4px; }
+  .meter-pct { font-size: 28px; font-weight: 800; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .meter-sub { color: var(--ink-2); font-size: 14px; }
+  .meter-pending { color: var(--muted); font-size: 13px; }
+  .track {
+    position: relative; height: 14px; border-radius: 99px; background: #dfe4ec; overflow: hidden;
+    border: 1px solid #c3cbd8; margin-top: 6px;
+  }
+  .fill {
+    height: 100%; width: 0; background: linear-gradient(90deg, #1d4ed8, #2563eb);
+    border-radius: 99px; transition: width .45s cubic-bezier(.2, .8, .2, 1);
+  }
+  .fill.done { background: linear-gradient(90deg, #0f7a3d, #16a34a); }
+
+  /* ---------- Tabs ---------- */
+  .tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 14px 0 10px; }
+  .tab {
+    text-align: left; min-height: 64px; padding: 10px 12px; border-radius: 12px;
+    border: 2px solid var(--line); background: var(--surface); cursor: pointer; position: relative;
+  }
+  .tab[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 -4px 0 var(--accent); }
+  .tab .t-kicker { display: block; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .tab .t-title { display: block; font-weight: 700; padding-right: 26px; overflow-wrap: anywhere; }
+  .tab .t-meter { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .tab .t-track { flex: 1; height: 6px; border-radius: 99px; background: #dfe4ec; overflow: hidden; }
+  .tab .t-fill { height: 100%; width: 0; background: var(--accent); transition: width .45s ease; }
+  .tab.solved .t-fill { background: var(--good); }
+  .tab .t-tick {
+    position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; border-radius: 50%;
+    background: var(--good); color: #fff; display: none; align-items: center; justify-content: center;
+  }
+  .tab.solved .t-tick { display: inline-flex; }
+
+  /* ---------- Incident panel ---------- */
+  .panel { padding-bottom: 40px; }
+  .care-note {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 12px;
+    padding: 10px 12px; margin: 6px 0 12px; color: #5b4300; font-size: 15px;
+  }
+  .panel h2 { font-size: 24px; margin: 6px 0 6px; line-height: 1.2; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .solved-badge {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700;
+    color: var(--good); background: var(--good-soft); border: 1px solid #9fdcb8; border-radius: 99px; padding: 3px 10px;
+  }
+  .intro { color: var(--ink-2); margin: 0 0 14px; }
+  .end-label {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 800;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--ink-2); margin: 8px 2px;
+  }
+  .end-label::after { content: ""; flex: 1; height: 2px; background: var(--line); border-radius: 2px; }
+
+  .cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .card {
+    display: flex; align-items: stretch; gap: 6px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 6px 6px 6px 0; min-height: 96px;
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  }
+  .card:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .card.lifted {
+    position: fixed; z-index: 50; margin: 0; box-shadow: var(--lift);
+    transform: scale(1.02); cursor: grabbing; border-color: var(--accent);
+  }
+  .card.mouse-grab { cursor: grab; }
+  .placeholder {
+    border: 2px dashed var(--accent); border-radius: var(--radius); background: var(--accent-soft);
+  }
+  .grip {
+    flex: 0 0 40px; display: flex; align-items: center; justify-content: center;
+    color: #7a8698; cursor: grab; touch-action: none; border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .grip:hover { color: var(--accent); }
+  .locked .grip { cursor: default; color: #b6bfcc; }
+  .body { flex: 1; min-width: 0; padding: 8px 4px; display: flex; flex-direction: column; justify-content: center; }
+  .card-no { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .03em; margin-bottom: 2px; }
+  .card-text { margin: 0; overflow-wrap: anywhere; font-size: 15.5px; }
+  .arrows { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+  .arrow {
+    width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--line);
+    background: #f4f6fa; display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .arrow:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+  .arrow:disabled { opacity: .35; cursor: not-allowed; }
+  .card.hint-right { background: var(--good-soft); border-color: var(--good); box-shadow: inset 4px 0 0 var(--good); }
+  .hint-tag {
+    display: none; align-self: flex-start; align-items: center; gap: 4px; margin-bottom: 4px;
+    font-size: 12px; font-weight: 750; color: #fff; background: var(--good); border-radius: 99px; padding: 2px 8px;
+  }
+  .card.hint-right .hint-tag { display: inline-flex; }
+  .locked .card { box-shadow: none; }
+
+  .hint-box {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; margin: 0 0 12px;
+  }
+  .hint-box .hint-text { flex: 1 1 200px; margin: 0; font-size: 14px; color: var(--ink-2); }
+  .hint-box .hint-msg { flex-basis: 100%; margin: 0; font-size: 14px; font-weight: 650; color: var(--good); }
+  .hint-box .hint-msg:empty { display: none; }
+  .locked .arrows { display: none; }
+
+  .under-list { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+  .tip { color: var(--muted); font-size: 14px; margin: 14px 0 0; }
+
+  /* ---------- Reveal ---------- */
+  .reveal {
+    margin-top: 22px; background: var(--surface); border: 2px solid var(--good);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
+  }
+  .reveal h3 { margin: 0 0 12px; font-size: 20px; }
+  .reveal h4 { margin: 20px 0 8px; font-size: 16px; }
+  .key { list-style: none; margin: 0; padding: 0; }
+  .key li { display: grid; grid-template-columns: 34px 1fr; gap: 2px 10px; padding: 10px 0; border-top: 1px solid #e3e8ef; }
+  .key li:first-child { border-top: 0; }
+  .key .pos {
+    grid-row: span 2; width: 28px; height: 28px; border-radius: 50%; background: var(--good-soft); color: var(--good);
+    font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  }
+  .key .date { font-weight: 700; overflow-wrap: anywhere; }
+  .key .date small { font-weight: 600; color: var(--muted); margin-left: 6px; }
+  .key .what { margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+  .tricky { margin: 0; padding-left: 20px; }
+  .tricky li { margin: 6px 0; overflow-wrap: anywhere; }
+
+  /* ---------- Finish ---------- */
+  .done-banner {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+    background: var(--good-soft); border: 1px solid #9fdcb8; border-radius: 12px; padding: 10px 12px; margin-top: 12px;
+  }
+  .overlay {
+    position: fixed; inset: 0; z-index: 100; background: rgba(15, 23, 42, .55);
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .dialog {
+    background: var(--surface); border-radius: 18px; padding: 26px 22px; width: 100%; max-width: 440px;
+    text-align: center; box-shadow: var(--lift); max-height: calc(100vh - 32px); overflow: auto;
+  }
+  .dialog .big-tick {
+    width: 64px; height: 64px; border-radius: 50%; background: var(--good); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center; margin-bottom: 8px;
+  }
+  .dialog h2 { margin: 4px 0 6px; font-size: 28px; }
+  .dialog .result { display: flex; justify-content: center; gap: 12px; margin: 16px 0; flex-wrap: wrap; }
+  .dialog .result div { background: var(--bg); border-radius: 12px; padding: 10px 16px; min-width: 110px; }
+  .dialog .result b { display: block; font-size: 24px; font-variant-numeric: tabular-nums; }
+  .dialog .result span { font-size: 13px; color: var(--muted); }
+  .reward {
+    background: var(--warn-soft); border: 1px solid var(--warn-line); border-radius: 12px;
+    padding: 12px; margin: 0 0 16px; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .dialog .actions { display: flex; flex-direction: column; gap: 10px; }
+
+  @media (max-width: 420px) {
+    .meter-pct { font-size: 24px; }
+    .panel h2 { font-size: 21px; }
+    .card-text { font-size: 15px; }
+    .grip { flex-basis: 34px; }
+    .stats { gap: 8px; font-size: 13px; }
+    .brand { display: none; }
+    .stats { margin-right: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+    .card.lifted { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div id="live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<section id="start" hidden>
+  <div class="wrap hero">
+    <div class="logo" aria-hidden="true">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </div>
+    <h1>Cyber Timeline</h1>
+    <p>You get two real cyber incidents, each told as a shuffled stack of cards.<br>
+      Put every card in order from earliest to latest. The meter shows how many are in the right place.</p>
+    <div class="actions"><button id="startBtn" class="btn big" type="button">Start</button></div>
+    <p id="resumeNote" class="resume-note" hidden></p>
+  </div>
+</section>
+
+<section id="game" hidden>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="bar-row">
+        <span class="brand">Cyber Timeline</span>
+        <span class="stats"><span>Moves <b id="moves">0</b></span><span>Hints <b id="hints">0</b></span></span>
+        <button id="restartBtn" class="btn secondary small" type="button">Restart</button>
+      </div>
+      <div id="meter" role="group" aria-label="Progress">
+        <div class="meter-text">
+          <span class="meter-pct" id="meterPct">0% complete</span>
+          <span class="meter-sub" id="meterSub">0 of 0 cards in the right place</span>
+          <span class="meter-pending" id="meterPending" hidden>Press “Check my order” to update</span>
+        </div>
+        <div class="track" id="meterTrack" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Percent complete">
+          <div class="fill" id="meterFill"></div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <div id="doneBanner" class="done-banner" hidden>
+      <strong>Both timelines solved.</strong>
+      <button id="bannerAgain" class="btn small" type="button">Play again</button>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Incidents"></div>
+    <div id="panels"></div>
+  </main>
+</section>
+
+<div id="finish" class="overlay" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+    <div class="big-tick" aria-hidden="true">
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+    </div>
+    <h2 id="finishTitle" tabindex="-1">Well done!</h2>
+    <p>You put both timelines in the right order.</p>
+    <div class="result">
+      <div><b id="finMoves">0</b><span>total moves</span></div>
+      <div><b id="finHints">0</b><span>hints taken</span></div>
+    </div>
+    <p id="reward" class="reward" hidden></p>
+    <div class="actions">
+      <button id="againBtn" class="btn big" type="button">Play again</button>
+      <button id="reviewBtn" class="btn secondary" type="button">Review the timelines</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  // ===== Config =====
+  const LIVE_METER = true;      // false: the meter only updates when "Check my order" is pressed
+  const FINAL_MESSAGE = "";     // shown on the finish screen when non-empty
+  const INCIDENTS_PER_GAME = 2;
+  const STORE_KEY = 'cyberTimeline.v1';
+
+  // ===== Data (generated from the Puzzle 4 doc by build/build-game.js; do not edit by hand) =====
+  const DATA = /*__GAME_DATA__*/null;
+
+  // ===== Helpers =====
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function decodeKey(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return JSON.parse(new TextDecoder('utf-8').decode(bytes));
+  }
+  const ROUNDS = {};
+  DATA.forEach((r) => { ROUNDS[r.n] = Object.assign({}, r, { answer: decodeKey(r.key) }); });
+
+  function randInt(n) { // unbiased integer in [0, n)
+    if (window.crypto && crypto.getRandomValues) {
+      const buf = new Uint32Array(1);
+      const limit = Math.floor(0x100000000 / n) * n;
+      let x;
+      do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+      return x % n;
+    }
+    return Math.floor(Math.random() * n);
+  }
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = randInt(i + 1);
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+  function correctCount(n, order) {
+    const ans = ROUNDS[n].answer.order;
+    let c = 0;
+    for (let i = 0; i < ans.length; i++) if (order[i] === ans[i]) c++;
+    return c;
+  }
+  function startingOrder(n) {
+    const ids = ROUNDS[n].cards.map((c) => c.id);
+    const maxRight = Math.floor(ids.length / 4);
+    let order;
+    do { order = shuffle(ids); } while (correctCount(n, order) > maxRight || correctCount(n, order) === ids.length);
+    return order;
+  }
+  function samePair(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    const s = a.slice().sort().join(',');
+    return s === b.slice().sort().join(',');
+  }
+  function pickRounds(avoid) {
+    const all = Object.keys(ROUNDS).map(Number);
+    let pick;
+    do { pick = shuffle(all).slice(0, INCIDENTS_PER_GAME); } while (samePair(pick, avoid));
+    return pick;
+  }
+  function forcedRounds() {
+    try {
+      const p = new URLSearchParams(location.search).get('rounds');
+      if (!p) return null;
+      const nums = p.split(',').map((s) => Number(s.trim()));
+      const ok = nums.length >= 1 && nums.every((x) => ROUNDS[x]) && new Set(nums).size === nums.length;
+      if (!ok) { console.warn('Ignoring invalid ?rounds= parameter: ' + p); return null; }
+      return nums;
+    } catch (e) { return null; }
+  }
+  function announce(msg) {
+    const el = $('live');
+    el.textContent = '';
+    setTimeout(() => { el.textContent = msg; }, 30);
+  }
+  function svgIcon(path, size, sw) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('width', size); svg.setAttribute('height', size); svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', sw || 2.4); svg.setAttribute('stroke-linecap', 'round'); svg.setAttribute('stroke-linejoin', 'round');
+    svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('focusable', 'false');
+    const p = document.createElementNS(ns, 'path'); p.setAttribute('d', path); svg.appendChild(p);
+    return svg;
+  }
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  // ===== State =====
+  let state = null;   // { rounds, orders, solved, checked, moves, hints, active }
+  let lastPair = null;
+  const views = {};   // per round: { tab, panel, list, items: {id: li}, ... }
+
+  function save() {
+    try { sessionStorage.setItem(STORE_KEY, JSON.stringify({ state, lastPair })); } catch (e) { /* storage unavailable */ }
+  }
+  function load() {
+    try {
+      const raw = sessionStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const obj = JSON.parse(raw);
+      lastPair = Array.isArray(obj.lastPair) ? obj.lastPair : null;
+      const s = obj.state;
+      if (!s || !Array.isArray(s.rounds) || !s.rounds.length) return null;
+      for (const n of s.rounds) {
+        if (!ROUNDS[n] || !Array.isArray(s.orders[n])) return null;
+        const want = ROUNDS[n].cards.map((c) => c.id).sort((a, b) => a - b).join(',');
+        if (s.orders[n].slice().sort((a, b) => a - b).join(',') !== want) return null;
+      }
+      if (typeof s.hints !== 'number') s.hints = 0;
+      return s;
+    } catch (e) { return null; }
+  }
+
+  function newGame(rounds) {
+    const orders = {}, solved = {}, checked = {};
+    rounds.forEach((n) => { orders[n] = startingOrder(n); solved[n] = false; checked[n] = correctCount(n, orders[n]); });
+    lastPair = rounds.slice();
+    state = { rounds: rounds.slice(), orders, solved, checked, moves: 0, hints: 0, active: rounds[0] };
+    save();
+    showGame();
+  }
+
+  // ===== Rendering =====
+  function showStart() {
+    $('game').hidden = true; $('finish').hidden = true; $('start').hidden = false;
+  }
+
+  function showGame() {
+    $('start').hidden = true; $('game').hidden = false;
+    buildViews();
+    selectTab(state.active, false);
+    updateMeter(true);
+    state.rounds.forEach((n) => { if (state.solved[n]) markSolved(n, false); });
+    refreshDone(false);
+    renderStats();
+    window.scrollTo(0, 0);
+  }
+
+  function buildViews() {
+    const tabs = $('tabs'), panels = $('panels');
+    tabs.replaceChildren(); panels.replaceChildren();
+    Object.keys(views).forEach((k) => delete views[k]);
+    const total = state.rounds.length;
+    state.rounds.forEach((n, idx) => {
+      const r = ROUNDS[n];
+      const v = { n, items: {} };
+      views[n] = v;
+
+      // Tab
+      const tab = el('button', 'tab');
+      tab.type = 'button'; tab.id = 'tab-' + n;
+      tab.setAttribute('role', 'tab'); tab.setAttribute('aria-controls', 'panel-' + n);
+      tab.appendChild(el('span', 't-kicker', 'Incident ' + (idx + 1) + ' of ' + total));
+      tab.appendChild(el('span', 't-title', r.title));
+      const tm = el('span', 't-meter');
+      const tt = el('span', 't-track'); const tf = el('span', 't-fill'); tt.appendChild(tf);
+      const tc = el('span', 't-count', '');
+      tm.appendChild(tt); tm.appendChild(tc);
+      tab.appendChild(tm);
+      const tick = el('span', 't-tick'); tick.appendChild(svgIcon('M5 12.5l4.5 4.5L19 7.5', 14, 3.2));
+      tab.appendChild(tick);
+      const tSolved = el('span', 'sr-only', ''); tab.appendChild(tSolved);
+      tab.addEventListener('click', () => selectTab(n, true));
+      tab.addEventListener('keydown', onTabKey);
+      tabs.appendChild(tab);
+      Object.assign(v, { tab, tabFill: tf, tabCount: tc, tabSolved: tSolved });
+
+      // Panel
+      const panel = el('section', 'panel');
+      panel.id = 'panel-' + n;
+      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', 'tab-' + n);
+      if (n === 2) {
+        const note = el('p', 'care-note');
+        note.appendChild(svgIcon('M12 8v5M12 16.5v.5M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z', 20, 2.2));
+        note.appendChild(el('span', '', 'This incident involved real loss of life. It is covered factually.'));
+        panel.appendChild(note);
+      }
+      const h = el('h2', ''); h.appendChild(el('span', '', r.title));
+      const badge = el('span', 'solved-badge'); badge.appendChild(svgIcon('M5 12.5l4.5 4.5L19 7.5', 14, 3.2));
+      badge.appendChild(el('span', '', 'Solved')); badge.hidden = true;
+      h.appendChild(badge);
+      panel.appendChild(h);
+      panel.appendChild(el('p', 'intro', r.intro));
+      const hintBox = el('div', 'hint-box');
+      hintBox.appendChild(el('p', 'hint-text', 'Need a hint? Highlight the cards that are already in the right place. Each hint is counted.'));
+      const hintBtn = el('button', 'btn secondary small hint-btn', 'Show cards in the right place');
+      hintBtn.type = 'button';
+      hintBtn.addEventListener('click', () => showHint(n));
+      hintBox.appendChild(hintBtn);
+      const hintMsg = el('p', 'hint-msg', '');
+      hintBox.appendChild(hintMsg);
+      panel.appendChild(hintBox);
+      panel.appendChild(el('div', 'end-label', 'Earliest'));
+      const list = el('ol', 'cards');
+      list.setAttribute('aria-label', r.title + ' cards, earliest at the top');
+      const byId = {};
+      r.cards.forEach((c) => { byId[c.id] = c; });
+      state.orders[n].forEach((id) => {
+        const li = makeCard(n, byId[id]);
+        v.items[id] = li;
+        list.appendChild(li);
+      });
+      panel.appendChild(list);
+      panel.appendChild(el('div', 'end-label', 'Latest'));
+
+      const under = el('div', 'under-list');
+      if (!LIVE_METER) {
+        const check = el('button', 'btn', 'Check my order');
+        check.type = 'button'; check.className = 'btn check-btn';
+        check.addEventListener('click', checkOrder);
+        under.appendChild(check);
+        v.checkBtn = check;
+      }
+      panel.appendChild(under);
+      panel.appendChild(el('p', 'tip', 'Stuck? Search the incident name online to find its timeline.'));
+      const reveal = el('div', 'reveal'); reveal.hidden = true;
+      panel.appendChild(reveal);
+      panels.appendChild(panel);
+      Object.assign(v, { panel, list, badge, reveal, under, hintBox, hintMsg });
+      refreshArrows(n);
+    });
+  }
+
+  function makeCard(n, card) {
+    const li = el('li', 'card');
+    li.tabIndex = 0;
+    li.dataset.id = card.id;
+    const grip = el('span', 'grip');
+    grip.setAttribute('aria-hidden', 'true');
+    grip.title = 'Drag to move';
+    grip.appendChild(svgIcon('M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01', 22, 3.4));
+    const body = el('div', 'body');
+    const tag = el('span', 'hint-tag');
+    tag.appendChild(svgIcon('M5 12.5l4.5 4.5L19 7.5', 12, 3.4));
+    tag.appendChild(el('span', '', 'Right place'));
+    body.appendChild(tag);
+    body.appendChild(el('span', 'card-no', 'Card ' + card.id));
+    const p = el('p', 'card-text', card.text);
+    p.id = 'ct-' + n + '-' + card.id;
+    body.appendChild(p);
+    const arrows = el('div', 'arrows');
+    const up = el('button', 'arrow up'); up.type = 'button';
+    up.setAttribute('aria-label', 'Move card ' + card.id + ' up');
+    up.appendChild(svgIcon('M6 15l6-6 6 6', 22));
+    const down = el('button', 'arrow down'); down.type = 'button';
+    down.setAttribute('aria-label', 'Move card ' + card.id + ' down');
+    down.appendChild(svgIcon('M6 9l6 6 6-6', 22));
+    arrows.appendChild(up); arrows.appendChild(down);
+    li.appendChild(grip); li.appendChild(body); li.appendChild(arrows);
+
+    up.addEventListener('click', () => moveBy(n, card.id, -1, up));
+    down.addEventListener('click', () => moveBy(n, card.id, 1, down));
+    li.addEventListener('keydown', (e) => {
+      if (e.target !== li) return;
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveBy(n, card.id, e.key === 'ArrowUp' ? -1 : 1, li);
+      }
+    });
+    li.addEventListener('pointerdown', (e) => onPointerDown(e, n, li));
+    li.addEventListener('contextmenu', (e) => { if (e.target.closest('.grip')) e.preventDefault(); });
+    return li;
+  }
+
+  function refreshArrows(n) {
+    const v = views[n], order = state.orders[n], locked = state.solved[n];
+    order.forEach((id, i) => {
+      const li = v.items[id];
+      li.querySelector('.up').disabled = locked || i === 0;
+      li.querySelector('.down').disabled = locked || i === order.length - 1;
+      li.setAttribute('aria-label', 'Card ' + id + ', position ' + (i + 1) + ' of ' + order.length +
+        (locked ? '' : '. Use arrow up or down to move.'));
+      li.setAttribute('aria-describedby', 'ct-' + n + '-' + id);
+    });
+    v.list.classList.toggle('locked', locked);
+  }
+
+  function selectTab(n, focus) {
+    state.active = n;
+    state.rounds.forEach((m) => {
+      const v = views[m], on = m === n;
+      v.tab.setAttribute('aria-selected', on ? 'true' : 'false');
+      v.tab.tabIndex = on ? 0 : -1;
+      v.panel.hidden = !on;
+    });
+    if (focus) views[n].tab.focus();
+    save();
+  }
+  function onTabKey(e) {
+    const i = state.rounds.indexOf(state.active);
+    let j = null;
+    if (e.key === 'ArrowRight') j = (i + 1) % state.rounds.length;
+    else if (e.key === 'ArrowLeft') j = (i - 1 + state.rounds.length) % state.rounds.length;
+    else if (e.key === 'Home') j = 0;
+    else if (e.key === 'End') j = state.rounds.length - 1;
+    if (j !== null) { e.preventDefault(); selectTab(state.rounds[j], true); }
+  }
+
+  // ===== Moves =====
+  function flip(n, mutate) {
+    const v = views[n];
+    const items = Object.values(v.items);
+    const before = reduceMotion() ? null : new Map(items.map((li) => [li, li.getBoundingClientRect().top]));
+    mutate();
+    if (!before) return;
+    items.forEach((li) => {
+      const dy = before.get(li) - li.getBoundingClientRect().top;
+      if (!dy) return;
+      li.style.transition = 'none';
+      li.style.transform = 'translateY(' + dy + 'px)';
+      requestAnimationFrame(() => {
+        li.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)';
+        li.style.transform = '';
+        li.addEventListener('transitionend', () => { li.style.transition = ''; }, { once: true });
+      });
+    });
+  }
+
+  function applyOrder(n, order) {
+    const v = views[n];
+    order.forEach((id) => v.list.appendChild(v.items[id]));
+  }
+
+  function moveBy(n, id, delta, refocus) {
+    if (state.solved[n]) return;
+    const order = state.orders[n].slice();
+    const i = order.indexOf(id), j = i + delta;
+    if (j < 0 || j >= order.length) return;
+    order.splice(i, 1); order.splice(j, 0, id);
+    flip(n, () => applyOrder(n, order));
+    commitMove(n, order);
+    // keep focus on the control that was used, unless it became disabled at the end of the list
+    let target = refocus;
+    if (!target || target.disabled) target = views[n].items[id];
+    target.focus({ preventScroll: false });
+    announce('Card ' + id + ' moved to position ' + (j + 1) + ' of ' + order.length + '.');
+  }
+
+  // ===== Hints =====
+  // A hint marks the cards that are right at this moment; it clears on the next move in that incident.
+  function showHint(n) {
+    if (state.solved[n]) return;
+    const v = views[n], ans = ROUNDS[n].answer.order, order = state.orders[n];
+    state.hints++;
+    $('hints').textContent = state.hints;
+    let right = 0;
+    order.forEach((id, i) => {
+      const ok = id === ans[i];
+      if (ok) right++;
+      v.items[id].classList.toggle('hint-right', ok);
+    });
+    const msg = right === 0
+      ? 'None of these cards are in the right place yet.'
+      : right + ' of ' + order.length + ' cards are in the right place, marked green with a tick. The marks clear when you move a card.';
+    v.hintMsg.textContent = msg;
+    announce(msg);
+    save();
+  }
+  function clearHint(n) {
+    const v = views[n];
+    Object.values(v.items).forEach((li) => li.classList.remove('hint-right'));
+    v.hintMsg.textContent = '';
+  }
+
+  function commitMove(n, order) {
+    clearHint(n);
+    state.orders[n] = order;
+    state.moves++;
+    $('moves').textContent = state.moves;
+    refreshArrows(n);
+    if (LIVE_METER) evaluate();
+    else { $('meterPending').hidden = false; }
+    save();
+  }
+
+  function evaluate() {
+    state.rounds.forEach((n) => { state.checked[n] = correctCount(n, state.orders[n]); });
+    updateMeter(false);
+    let newly = false;
+    state.rounds.forEach((n) => {
+      if (!state.solved[n] && state.checked[n] === state.orders[n].length) {
+        state.solved[n] = true; newly = true;
+        markSolved(n, true);
+      }
+    });
+    if (newly) refreshDone(true);
+    save();
+  }
+
+  function checkOrder() {
+    $('meterPending').hidden = true;
+    evaluate();
+    if (!state.rounds.every((n) => state.solved[n])) {
+      const c = state.rounds.reduce((a, n) => a + state.checked[n], 0);
+      const t = state.rounds.reduce((a, n) => a + state.orders[n].length, 0);
+      announce(c + ' of ' + t + ' cards in the right place.');
+    }
+  }
+
+  // ===== Meter =====
+  let shownPct = 0, pctAnim = null;
+  function updateMeter(instant) {
+    let c = 0, t = 0;
+    state.rounds.forEach((n) => {
+      const len = state.orders[n].length, cn = state.checked[n];
+      c += cn; t += len;
+      const v = views[n];
+      v.tabFill.style.width = (100 * cn / len) + '%';
+      v.tabCount.textContent = cn + '/' + len;
+      v.tab.setAttribute('aria-label', v.tab.querySelector('.t-kicker').textContent + ': ' + ROUNDS[n].title +
+        ', ' + cn + ' of ' + len + ' in the right place' + (state.solved[n] ? ', solved' : ''));
+    });
+    const pct = t ? Math.floor((100 * c) / t) : 0;
+    const meter = $('meter');
+    meter.dataset.correct = c; meter.dataset.total = t; meter.dataset.percent = pct;
+    $('meterSub').textContent = c + ' of ' + t + ' cards in the right place';
+    $('meterTrack').setAttribute('aria-valuenow', pct);
+    $('meterTrack').setAttribute('aria-valuetext', pct + '% complete');
+    const fill = $('meterFill');
+    fill.style.width = pct + '%';
+    fill.classList.toggle('done', pct === 100);
+    if (pctAnim) cancelAnimationFrame(pctAnim);
+    if (instant || reduceMotion()) { shownPct = pct; $('meterPct').textContent = pct + '% complete'; return; }
+    const from = shownPct, t0 = performance.now(), dur = 350;
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      shownPct = Math.round(from + (pct - from) * (1 - Math.pow(1 - k, 3)));
+      $('meterPct').textContent = shownPct + '% complete';
+      if (k < 1) pctAnim = requestAnimationFrame(step); else { shownPct = pct; pctAnim = null; }
+    };
+    pctAnim = requestAnimationFrame(step);
+  }
+
+  // ===== Solved / finish =====
+  function markSolved(n, fresh) {
+    const v = views[n], ans = ROUNDS[n].answer;
+    v.badge.hidden = false;
+    v.tab.classList.add('solved');
+    v.tabSolved.textContent = ' (solved)';
+    if (v.checkBtn) v.checkBtn.hidden = true;
+    clearHint(n);
+    v.hintBox.hidden = true;
+    refreshArrows(n);
+    Object.values(v.items).forEach((li) => li.classList.remove('mouse-grab'));
+
+    const box = v.reveal;
+    box.replaceChildren();
+    box.appendChild(el('h3', '', 'What really happened'));
+    const ol = el('ol', 'key');
+    ans.rows.forEach((row, i) => {
+      const li = el('li');
+      const pos = el('span', 'pos', String(i + 1)); pos.setAttribute('aria-hidden', 'true');
+      const d = el('div', 'date', row.date);
+      d.appendChild(el('small', '', 'Card ' + row.card));
+      li.appendChild(pos); li.appendChild(d); li.appendChild(el('p', 'what', row.text));
+      ol.appendChild(li);
+    });
+    box.appendChild(ol);
+    box.appendChild(el('h4', '', 'Why it is tricky'));
+    const ul = el('ul', 'tricky');
+    ans.tricky.forEach((t) => ul.appendChild(el('li', '', t)));
+    box.appendChild(ul);
+    box.hidden = false;
+    if (fresh) announce(ROUNDS[n].title + ' solved! The real timeline is shown below the cards.');
+  }
+
+  function refreshDone(fresh) {
+    const all = state.rounds.every((n) => state.solved[n]);
+    $('doneBanner').hidden = !all;
+    if (!all) return;
+    save();
+    if (fresh) {
+      reportToHub({
+        status: 'pass', hints: state.hints, durationSec: Math.round((state.finishedAt - state.startedAt) / 1000),
+        details: { moves: state.moves, incidents: state.rounds.map((n) => ROUNDS[n].title) }
+      });
+      openFinish();
+    }
+  }
+
+  // Escape Hub bridge (no-op when played standalone)
+  function reportToHub(r) {
+    try { if (window.parent !== window) window.parent.postMessage(Object.assign({ type: 'escape-hub:result', puzzle: 4 }, r), '*'); } catch (e) { /* ignore */ }
+  }
+
+  function openFinish() {
+    $('finMoves').textContent = state.moves;
+    $('finHints').textContent = state.hints;
+    const reward = $('reward');
+    reward.hidden = !FINAL_MESSAGE;
+    reward.textContent = FINAL_MESSAGE;
+    $('finish').hidden = false;
+    $('finishTitle').focus();
+  }
+  function closeFinish() {
+    $('finish').hidden = true;
+    $('bannerAgain').focus();
+  }
+
+  function playAgain() {
+    $('finish').hidden = true;
+    try {
+      if (new URLSearchParams(location.search).has('rounds')) {
+        history.replaceState(null, '', location.pathname + location.hash);
+      }
+    } catch (e) { /* ignore */ }
+    newGame(pickRounds(lastPair));
+  }
+
+  function renderStats() {
+    $('moves').textContent = state.moves;
+    $('hints').textContent = state.hints;
+  }
+
+  // ===== Drag and drop (Pointer Events) =====
+  let drag = null;
+  const EDGE = 70, MAX_SPEED = 18;
+
+  function onPointerDown(e, n, li) {
+    if (drag || state.solved[n]) return;
+    if (e.button !== undefined && e.button !== 0) return;
+    if (e.target.closest('button')) return;
+    const onGrip = !!e.target.closest('.grip');
+    // Touch and pen only drag from the grip so the rest of the card still scrolls the page.
+    if (e.pointerType !== 'mouse' && !onGrip) return;
+    const rect = li.getBoundingClientRect();
+    drag = {
+      n, li, id: Number(li.dataset.id), pointerId: e.pointerId,
+      startX: e.clientX, startY: e.clientY, y: e.clientY,
+      offsetY: e.clientY - rect.top, started: false, captureEl: e.currentTarget,
+      threshold: onGrip ? 2 : 6, scrollRaf: null, placeholder: null,
+    };
+    if (onGrip) e.preventDefault();
+    try { li.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
+    window.addEventListener('keydown', onDragKey);
+  }
+
+  function beginDrag() {
+    const d = drag, li = d.li, rect = li.getBoundingClientRect();
+    d.started = true;
+    d.originalOrder = state.orders[d.n].slice();
+    const ph = el('li', 'placeholder');
+    ph.setAttribute('aria-hidden', 'true');
+    ph.style.height = rect.height + 'px';
+    li.parentNode.insertBefore(ph, li);
+    d.placeholder = ph;
+    li.style.width = rect.width + 'px';
+    li.style.left = rect.left + 'px';
+    li.style.top = rect.top + 'px';
+    li.classList.add('lifted');
+    document.body.style.cursor = 'grabbing';
+    autoScrollLoop();
+  }
+
+  function onPointerMove(e) {
+    const d = drag;
+    if (!d || e.pointerId !== d.pointerId) return;
+    d.y = e.clientY;
+    if (!d.started) {
+      if (Math.abs(e.clientY - d.startY) < d.threshold && Math.abs(e.clientX - d.startX) < d.threshold) return;
+      beginDrag();
+    }
+    e.preventDefault();
+    positionDragged();
+  }
+
+  function positionDragged() {
+    const d = drag;
+    d.li.style.top = (d.y - d.offsetY) + 'px';
+    const list = views[d.n].list;
+    const others = Array.from(list.children).filter((c) => c !== d.li && c !== d.placeholder);
+    const centre = d.y - d.offsetY + d.li.offsetHeight / 2;
+    let before = null;
+    for (const c of others) {
+      const r = c.getBoundingClientRect();
+      if (centre < r.top + r.height / 2) { before = c; break; }
+    }
+    if (before) { if (d.placeholder.nextSibling !== before) list.insertBefore(d.placeholder, before); }
+    else if (list.lastElementChild !== d.placeholder) list.appendChild(d.placeholder);
+  }
+
+  function autoScrollLoop() {
+    const d = drag;
+    if (!d || !d.started) return;
+    const top = document.querySelector('.topbar').getBoundingClientRect().bottom;
+    const vh = window.innerHeight;
+    let speed = 0;
+    if (d.y < top + EDGE) speed = -MAX_SPEED * Math.min(1, (top + EDGE - d.y) / EDGE);
+    else if (d.y > vh - EDGE) speed = MAX_SPEED * Math.min(1, (d.y - (vh - EDGE)) / EDGE);
+    if (speed) {
+      const prev = window.scrollY;
+      window.scrollBy(0, speed);
+      if (window.scrollY !== prev) positionDragged();
+    }
+    d.scrollRaf = requestAnimationFrame(autoScrollLoop);
+  }
+
+  function endDrag(cancel) {
+    const d = drag;
+    drag = null;
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('pointercancel', onPointerUp);
+    window.removeEventListener('keydown', onDragKey);
+    try { d.li.releasePointerCapture(d.pointerId); } catch (err) { /* ignore */ }
+    if (!d.started) return;
+    if (d.scrollRaf) cancelAnimationFrame(d.scrollRaf);
+    document.body.style.cursor = '';
+    const li = d.li, ph = d.placeholder;
+    const from = li.getBoundingClientRect();
+    li.classList.remove('lifted');
+    li.style.width = li.style.left = li.style.top = '';
+    if (cancel) { ph.remove(); applyOrder(d.n, d.originalOrder); }
+    else { ph.replaceWith(li); }
+    if (!reduceMotion()) {
+      const to = li.getBoundingClientRect();
+      li.style.transition = 'none';
+      li.style.transform = 'translateY(' + (from.top - to.top) + 'px)';
+      requestAnimationFrame(() => {
+        li.style.transition = 'transform .18s ease-out';
+        li.style.transform = '';
+        li.addEventListener('transitionend', () => { li.style.transition = ''; }, { once: true });
+      });
+    }
+    const order = Array.from(views[d.n].list.children).map((c) => Number(c.dataset.id));
+    li.focus({ preventScroll: true });
+    if (order.join(',') !== state.orders[d.n].join(',')) {
+      commitMove(d.n, order);
+      announce('Card ' + d.id + ' moved to position ' + (order.indexOf(d.id) + 1) + ' of ' + order.length + '.');
+    }
+  }
+  function onPointerUp(e) {
+    // A cancelled pointer (e.g. the browser took over) still drops the card where the gap is.
+    if (drag && e.pointerId === drag.pointerId) endDrag(false);
+  }
+  function onDragKey(e) {
+    if (drag && drag.started && e.key === 'Escape') { e.preventDefault(); endDrag(true); }
+  }
+
+  // ===== Wiring =====
+  $('startBtn').addEventListener('click', () => {
+    const forced = forcedRounds();
+    newGame(forced || pickRounds(lastPair));
+  });
+  $('restartBtn').addEventListener('click', () => {
+    if (window.confirm('Restart? Both incidents will be reshuffled and your moves and hints reset.')) {
+      newGame(state.rounds);
+      announce('Game restarted.');
+    }
+  });
+  $('againBtn').addEventListener('click', playAgain);
+  $('bannerAgain').addEventListener('click', playAgain);
+  $('reviewBtn').addEventListener('click', closeFinish);
+  $('finish').addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFinish(); });
+  $('finish').addEventListener('click', (e) => { if (e.target === $('finish')) closeFinish(); });
+
+  // Mouse users can grab the whole card; show that affordance only for fine pointers.
+  if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) {
+    document.addEventListener('pointerover', (e) => {
+      const li = e.target.closest && e.target.closest('.card');
+      if (li && !li.closest('.locked') && !e.target.closest('button')) li.classList.add('mouse-grab');
+    });
+  }
+
+  // ===== Boot =====
+  (function boot() {
+    const saved = load();
+    const forced = forcedRounds();
+    if (saved && (!forced || samePair(forced, saved.rounds))) {
+      state = saved;
+      showGame();
+      return;
+    }
+    showStart();
+    $('startBtn').focus();
+  })();
+})();
+</script>
+</body>
+</html>

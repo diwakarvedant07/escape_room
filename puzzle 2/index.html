@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ransomware Recovery</title>
+<style>
+  :root {
+    --bg: #07090a;
+    --panel: #0d1213;
+    --panel-2: #111a1b;
+    --line: #1f3a2c;
+    --green: #39ff88;
+    --green-dim: #8fdcae;
+    --red: #ff4d5e;
+    --red-dim: #ff9aa4;
+    --amber: #ffcc4d;
+    --text: #d8f5e3;
+    --muted: #9bb8a8;
+    --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { font-size: clamp(15px, 1.05vw + 8px, 21px); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    line-height: 1.5;
+  }
+  /* Scanlines over the whole page, very subtle */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 3px);
+    z-index: 100;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 1.25rem 16px 3rem; }
+
+  /* ---------- Header ---------- */
+  header {
+    border: 1px solid var(--red);
+    background: linear-gradient(180deg, rgba(255,77,94,0.10), rgba(255,77,94,0.02));
+    padding: 1.25rem 1.5rem;
+    border-radius: 6px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem 2rem;
+    align-items: center;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(1.7rem, 4vw, 3.2rem);
+    letter-spacing: 0.08em;
+    color: var(--red);
+    text-shadow: 0 0 12px rgba(255,77,94,0.45);
+    position: relative;
+    display: inline-block;
+  }
+  h1 .glitch { position: relative; display: inline-block; }
+  h1 .glitch::before, h1 .glitch::after {
+    content: attr(data-text);
+    position: absolute; left: 0; top: 0;
+    width: 100%; overflow: hidden;
+    pointer-events: none;
+  }
+  h1 .glitch::before { color: var(--green); clip-path: inset(0 0 60% 0); animation: glitchA 4s infinite steps(1); opacity: 0.7; }
+  h1 .glitch::after  { color: #4dd2ff; clip-path: inset(55% 0 0 0); animation: glitchB 5s infinite steps(1); opacity: 0.6; }
+  @keyframes glitchA {
+    0%, 92%, 100% { transform: translate(0,0); opacity: 0; }
+    93% { transform: translate(-3px, -1px); opacity: 0.7; }
+    95% { transform: translate(3px, 1px); opacity: 0.7; }
+    97% { transform: translate(-1px, 0); opacity: 0.7; }
+  }
+  @keyframes glitchB {
+    0%, 88%, 100% { transform: translate(0,0); opacity: 0; }
+    89% { transform: translate(3px, 1px); opacity: 0.6; }
+    91% { transform: translate(-3px, 0); opacity: 0.6; }
+  }
+  .note {
+    margin: 0.6rem 0 0;
+    color: var(--red-dim);
+    max-width: 60ch;
+  }
+  .note b { color: var(--text); }
+
+  .timer-box { text-align: center; }
+  .timer-label { font-size: 0.8rem; color: var(--muted); letter-spacing: 0.2em; text-transform: uppercase; }
+  .timer {
+    font-size: clamp(2.2rem, 5vw, 4rem);
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 10px rgba(57,255,136,0.4);
+  }
+  .timer.warn { color: var(--amber); text-shadow: 0 0 10px rgba(255,204,77,0.4); }
+  .timer.crit { color: var(--red); text-shadow: 0 0 10px rgba(255,77,94,0.5); animation: pulse 1s infinite; }
+  .timer.hit { animation: hit 0.6s; }
+  @keyframes pulse { 50% { opacity: 0.55; } }
+  @keyframes hit { 0% { transform: scale(1.15); color: var(--red); } 100% { transform: scale(1); } }
+  .penalty-float { display: block; min-height: 1.4em; color: var(--red); font-size: 0.9rem; }
+
+  /* ---------- Buttons ---------- */
+  button {
+    font-family: var(--mono);
+    font-size: 0.95rem;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid var(--green);
+    background: transparent;
+    color: var(--green);
+    padding: 0.55rem 1rem;
+    letter-spacing: 0.05em;
+    transition: background 0.15s, color 0.15s;
+  }
+  button:hover:not(:disabled) { background: var(--green); color: #000; }
+  button:disabled { opacity: 0.45; cursor: not-allowed; }
+  button.danger { border-color: var(--red); color: var(--red); }
+  button.danger:hover:not(:disabled) { background: var(--red); color: #000; }
+  button.big { font-size: 1.15rem; padding: 0.8rem 1.6rem; font-weight: 700; }
+  :focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+
+  /* ---------- Layout ---------- */
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.5rem; margin-top: 1.5rem; }
+  @media (max-width: 1000px) { main { grid-template-columns: 1fr; } header { grid-template-columns: 1fr; } .timer-box { text-align: left; } }
+
+  h2 {
+    font-size: 1rem;
+    color: var(--green);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin: 0 0 0.8rem;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 0.4rem;
+  }
+
+  .clues {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr));
+    gap: 1rem;
+    counter-reset: clue;
+    list-style: none;
+    padding: 0; margin: 0;
+  }
+  .clue {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 0.9rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+  .clue-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+  .clue-num { color: var(--red); font-weight: 700; letter-spacing: 0.1em; }
+  .clue-num span { color: var(--muted); font-weight: 400; }
+  .b64 {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--green-dim);
+    background: #050707;
+    border: 1px solid #142219;
+    border-radius: 4px;
+    padding: 0.6rem 0.7rem;
+    white-space: pre-wrap;      /* wraps visually only; copied text stays one line */
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+  .copy-btn { font-size: 0.8rem; padding: 0.3rem 0.75rem; }
+  .copy-btn.ok { background: var(--green); color: #000; }
+
+  aside { display: flex; flex-direction: column; gap: 1.5rem; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1rem 1.1rem;
+  }
+  .panel ol { margin: 0; padding-left: 1.3rem; }
+  .panel li { margin-bottom: 0.4rem; }
+  .panel p { margin: 0.4rem 0; }
+
+  .key-panel { border-color: var(--green); background: var(--panel-2); }
+  label { display: block; color: var(--muted); font-size: 0.85rem; margin-bottom: 0.4rem; }
+  #keyInput {
+    width: 100%;
+    font-family: var(--mono);
+    font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    text-align: center;
+    background: #000;
+    color: var(--green);
+    border: 2px solid var(--line);
+    border-radius: 4px;
+    padding: 0.6rem 0.3rem 0.6rem 0.65rem;
+    caret-color: var(--green);
+  }
+  #keyInput:focus { border-color: var(--green); outline: none; box-shadow: 0 0 0 3px rgba(255,204,77,0.8); }
+  #keyInput::placeholder { color: #2d4a3a; }
+  .key-actions { display: flex; gap: 0.6rem; margin-top: 0.8rem; flex-wrap: wrap; }
+  .key-actions button { flex: 1 1 auto; }
+  .msg { min-height: 1.6em; margin-top: 0.7rem; font-weight: 700; }
+  .msg.err { color: var(--red); }
+  .msg.ok { color: var(--green); }
+  .stats { display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }
+  .stats b { color: var(--text); }
+
+  .shake { animation: shake 0.45s; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-10px); } 30% { transform: translateX(9px); }
+    45% { transform: translateX(-7px); } 60% { transform: translateX(6px); }
+    75% { transform: translateX(-3px); }
+  }
+
+  .hints-list { list-style: none; padding: 0; margin: 0.6rem 0 0; }
+  .hints-list li {
+    border-left: 3px solid var(--amber);
+    padding: 0.3rem 0 0.3rem 0.7rem;
+    margin-bottom: 0.6rem;
+    color: #ffe7a8;
+    font-size: 0.9rem;
+  }
+  .hint-meta { font-size: 0.8rem; color: var(--muted); }
+
+  /* ---------- Overlays ---------- */
+  .overlay {
+    position: fixed; inset: 0;
+    background: rgba(3,5,5,0.94);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    z-index: 50;
+  }
+  .overlay[hidden] { display: none; }
+  .dialog {
+    width: min(760px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    border: 1px solid var(--red);
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+  }
+  .dialog h2 { border: none; font-size: clamp(1.6rem, 4vw, 2.6rem); padding: 0; margin-bottom: 0.5rem; }
+  .dialog.lost { border-color: var(--red); }
+  .dialog.lost h2 { color: var(--red); }
+  .dialog.won { border-color: var(--green); text-align: left; }
+  .dialog.won h2 { color: var(--green); text-align: center; text-shadow: 0 0 14px rgba(57,255,136,0.5); }
+  .dialog p { margin: 0.6rem 0 1.2rem; }
+  .skull { font-size: 3rem; color: var(--red); line-height: 1; margin-bottom: 0.5rem; }
+
+  .term {
+    background: #000;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.8rem 1rem;
+    color: var(--green);
+    font-size: 0.85rem;
+    min-height: 11em;
+    max-height: 14em;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  @media (max-width: 600px) { .term { font-size: 0.68rem; } .dialog { padding: 1.2rem; } }
+  .term .cursor { display: inline-block; width: 0.6em; background: var(--green); animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.8rem;
+    margin: 1.2rem 0;
+  }
+  .result {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.6rem;
+    text-align: center;
+  }
+  .result .k { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; }
+  .result .v { font-size: 1.5rem; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .result.score .v { color: var(--green); font-size: 1.9rem; }
+  .center { text-align: center; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1><span class="glitch" data-text="RANSOMWARE RECOVERY">RANSOMWARE RECOVERY</span></h1>
+      <p class="note">
+        <b>Your files are encoded.</b> The recipe is a 64-letter alphabet.
+        Decode the clues, solve them, and enter the key to restore your files.
+      </p>
+    </div>
+    <div class="timer-box">
+      <div class="timer-label" id="timerLabel">Time remaining</div>
+      <div class="timer" id="timer" role="timer" aria-labelledby="timerLabel">20:00</div>
+      <span class="penalty-float" id="penaltyFloat" aria-hidden="true"></span>
+    </div>
+  </header>
+
+  <main>
+    <section aria-labelledby="cluesTitle">
+      <h2 id="cluesTitle">Intercepted clues</h2>
+      <ol class="clues" id="clues"></ol>
+    </section>
+
+    <aside>
+      <section class="panel key-panel" aria-labelledby="keyTitle">
+        <h2 id="keyTitle">Decryption key</h2>
+        <form id="keyForm" autocomplete="off">
+          <label for="keyInput">Enter the 10-letter key</label>
+          <input id="keyInput" type="text" maxlength="10" spellcheck="false"
+                 autocapitalize="characters" placeholder="··········" disabled>
+          <div class="key-actions">
+            <button type="submit" id="decryptBtn" class="big" disabled>Decrypt Files</button>
+          </div>
+        </form>
+        <div class="msg" id="msg" role="status" aria-live="assertive"></div>
+        <div class="stats">
+          <span>Failed attempts: <b id="failCount">0</b></span>
+          <span>Hints used: <b id="hintCount">0</b>/<span id="hintMax">3</span></span>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="hintTitle">
+        <h2 id="hintTitle">Hints</h2>
+        <button type="button" id="hintBtn" class="danger" disabled>Request Hint</button>
+        <div class="hint-meta" id="hintMeta"></div>
+        <ul class="hints-list" id="hintsList" aria-live="polite"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="howTitle">
+        <h2 id="howTitle">How to play</h2>
+        <ol>
+          <li>Copy each encoded string and decode it.</li>
+          <li>Solve the clue it reveals.</li>
+          <li>Take the letter the clue asks for.</li>
+          <li>Put the 10 letters in clue order (1 to 10).</li>
+          <li>Enter the key and hit <b>Decrypt Files</b>.</li>
+        </ol>
+        <p class="hint-meta" id="rulesMeta"></p>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<!-- Start screen -->
+<div class="overlay" id="startOverlay" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+  <div class="dialog">
+    <div class="skull" aria-hidden="true">&#9888;</div>
+    <h2 id="startTitle" style="color:var(--red)">SYSTEM COMPROMISED</h2>
+    <p>All company files have been encrypted. The attackers left 10 encoded clues.
+       Each clue gives one letter of the decryption key.</p>
+    <p id="startRules" class="hint-meta"></p>
+    <button type="button" class="big" id="startBtn">Start</button>
+  </div>
+</div>
+
+<!-- Lose screen -->
+<div class="overlay" id="loseOverlay" role="dialog" aria-modal="true" aria-labelledby="loseTitle" hidden>
+  <div class="dialog lost">
+    <div class="skull" aria-hidden="true">&#9760;</div>
+    <h2 id="loseTitle">TIME'S UP, FILES LOST</h2>
+    <p>The attackers wiped the decryption key. Every encrypted file is gone.</p>
+    <button type="button" class="big danger" id="retryBtn">Retry</button>
+  </div>
+</div>
+
+<!-- Win screen -->
+<div class="overlay" id="winOverlay" role="dialog" aria-modal="true" aria-labelledby="winTitle" hidden>
+  <div class="dialog won">
+    <h2 id="winTitle">FILES RESTORED</h2>
+    <div class="term" id="term" aria-hidden="true"></div>
+    <div class="results">
+      <div class="result"><div class="k">Time taken</div><div class="v" id="rTime">--:--</div></div>
+      <div class="result"><div class="k">Failed attempts</div><div class="v" id="rFails">0</div></div>
+      <div class="result"><div class="k">Hints used</div><div class="v" id="rHints">0</div></div>
+      <div class="result score"><div class="k">Score</div><div class="v" id="rScore">0</div></div>
+    </div>
+    <div class="center"><button type="button" class="big" id="againBtn">Play again</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ===================== CONFIG (tweak these) ===================== */
+  const TIMER_SECONDS        = 20 * 60; // total time allowed
+  const WRONG_PENALTY_SEC    = 30;      // seconds removed per wrong key
+  const HINT_COST_SEC        = 60;      // seconds removed per hint
+  const MAX_HINTS            = 3;       // hint button uses (capped at the number of HINTS)
+  const SCORE_BASE           = 1000;    // starting score
+  const SCORE_PER_WRONG      = 50;      // points lost per wrong key
+  const SCORE_PER_HINT       = 100;     // points lost per hint
+  const SCORE_PER_MINUTE     = 20;      // points lost per minute of play time
+  const WARN_AT_SEC          = 5 * 60;  // timer turns amber
+  const CRIT_AT_SEC          = 60;      // timer turns red and pulses
+  /* ================================================================ */
+
+  // SHA-256 of the uppercase, trimmed key. The key itself is not stored.
+  const KEY_HASH = 'de83558a9940af2ba850d37662c8cfb517e87590885d90cd933984a6a05af12b';
+
+  const CLUES = [
+    'SW5kaWEncyBsYXJnZXN0IHByaXZhdGUgdGhlcm1hbCBlbGVjdHJpY2l0eSBwcm9kdWNlciBpcyBBZGFuaSBfX18gTGltaXRlZC4gVGFrZSB0aGUgZmlyc3QgbGV0dGVyIG9mIHRoZSBtaXNzaW5nIHdvcmQu',
+    'QWRhbmkgQ29ycG9yYXRlIEhvdXNlIHNpdHMgaW4gYSBHdWphcmF0IGNpdHkgb24gdGhlIGJhbmtzIG9mIHRoZSBTYWJhcm1hdGkuIFRha2UgdGhlIGZpcnN0IGxldHRlciBvZiB0aGF0IGNpdHku',
+    'QWRhbmkncyBjb3Jwb3JhdGUgSFEgaXMgaW4gYW4gaW50ZWdyYXRlZCB0b3duc2hpcCBhbG9uZyBTRyBIaWdod2F5LiBUYWtlIHRoZSBmaXJzdCBsZXR0ZXIgb2YgdGhlIHRvd25zaGlwJ3MgbmFtZS4=',
+    'QVBTRVogc3RhbmRzIGZvciBBZGFuaSBQb3J0cyBhbmQgX19fIEVjb25vbWljIFpvbmUuIFRha2UgdGhlIGZpcnN0IGxldHRlciBvZiB0aGUgbWlzc2luZyB3b3JkLg==',
+    'TXVuZHJhLCBHdWphcmF0IGlzIGhvbWUgdG8gSW5kaWEncyBsYXJnZXN0IHByaXZhdGUgY29tbWVyY2lhbCB3aGF0PyBUYWtlIHRoZSBmaXJzdCBsZXR0ZXIgb2YgdGhlIGFuc3dlci4=',
+    'S2hhdmRhIGluIEt1dGNoIGlzIGJlaW5nIGJ1aWx0IGFzIG9uZSBvZiB0aGUgd29ybGQncyBsYXJnZXN0IHNvbGFyLWFuZC13aW5kIHBhcmtzLCBhIHR5cGUgb2YgcGxhbnQgdGhhdCBjb21iaW5lcyB0d28gZW5lcmd5IHNvdXJjZXMuIFRha2UgdGhlIGZpcnN0IGxldHRlciBvZiB0aGF0IHR5cGUncyBuYW1lLg==',
+    'VGhlIE1hbmFnaW5nIERpcmVjdG9yIG9mIEFkYW5pIEVudGVycHJpc2VzIGlzIHRoZSBDaGFpcm1hbidzIGJyb3RoZXIuIFRha2UgdGhlIGZpcnN0IGxldHRlciBvZiBoaXMgZmlyc3QgbmFtZS4=',
+    'QWRhbmkncyBkZWZlbmNlIGFybSBidWlsZHMgVUFWcyBhbmQgY291bnRlci1kcm9uZSBzeXN0ZW1zOiBBZGFuaSBEZWZlbmNlIGFuZCBfX18uIFRha2UgdGhlIGZpcnN0IGxldHRlciBvZiB0aGUgbWlzc2luZyB3b3JkLg==',
+    'VGhlIGdyb3VwJ3MgZmxhZ3NoaXAgaW5jdWJhdG9yIGlzIGxpc3RlZCBhcyBBRUwuIFRha2UgdGhlIGxhc3QgbGV0dGVyIG9mIHRoZSB3b3JkIHRoYXQgZm9sbG93cyAiQWRhbmkiIGluIGl0cyBmdWxsIG5hbWUu',
+    'QWRhbmlDb25uZVgsIHRoZSBoeXBlcnNjYWxlIGRhdGEgY2VudHJlIHZlbnR1cmUsIGlzIGEgSlYgYmV0d2VlbiBBZGFuaSBhbmQgd2hpY2ggY29tcGFueT8gVGFrZSB0aGUgZmlyc3QgbGV0dGVyIG9mIHRoYXQgcGFydG5lcidzIG5hbWUu'
+  ];
+
+  const HINTS = [
+    "These strings use a 64-character alphabet. Try CyberChef's 'From Base64'.",
+    'Every clue tells you which letter to take: first or last.',
+    "Answers are all words found on Adani Group's public website or a quick Google search."
+  ];
+  const HINT_LIMIT = Math.min(MAX_HINTS, HINTS.length);
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    timer: $('timer'), penaltyFloat: $('penaltyFloat'), clues: $('clues'),
+    form: $('keyForm'), input: $('keyInput'), decryptBtn: $('decryptBtn'), msg: $('msg'),
+    failCount: $('failCount'), hintCount: $('hintCount'), hintMax: $('hintMax'),
+    hintBtn: $('hintBtn'), hintMeta: $('hintMeta'), hintsList: $('hintsList'),
+    keyPanel: document.querySelector('.key-panel'),
+    startOverlay: $('startOverlay'), startBtn: $('startBtn'), startRules: $('startRules'),
+    loseOverlay: $('loseOverlay'), retryBtn: $('retryBtn'),
+    winOverlay: $('winOverlay'), againBtn: $('againBtn'), term: $('term'),
+    rTime: $('rTime'), rFails: $('rFails'), rHints: $('rHints'), rScore: $('rScore'),
+    rulesMeta: $('rulesMeta')
+  };
+
+  let state;
+  let tickId = null;
+  let termTimers = [];
+
+  /* ---------- Escape Hub bridge (no-op when played standalone) ---------- */
+  function reportToHub(r) {
+    try { if (window.parent !== window) window.parent.postMessage(Object.assign({ type: 'escape-hub:result', puzzle: 2 }, r), '*'); } catch (_) {}
+  }
+
+  /* ---------- SHA-256 ---------- */
+  // Uses Web Crypto when available. Falls back to a small JS implementation
+  // when the page is served over plain http (where crypto.subtle is missing).
+  async function sha256Hex(str) {
+    const bytes = new TextEncoder().encode(str);
+    if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+      const buf = await crypto.subtle.digest('SHA-256', bytes);
+      return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+    return sha256Fallback(bytes);
+  }
+
+  function sha256Fallback(bytes) {
+    const K = new Uint32Array([
+      0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+      0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+      0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+      0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+      0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+      0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+      0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+      0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+    const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+    const len = bytes.length;
+    const padded = new Uint8Array(((len + 9 + 63) >> 6) << 6);
+    padded.set(bytes);
+    padded[len] = 0x80;
+    const dv = new DataView(padded.buffer);
+    dv.setUint32(padded.length - 4, (len * 8) >>> 0);
+    dv.setUint32(padded.length - 8, Math.floor(len / 0x20000000));
+    const W = new Uint32Array(64);
+    const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+    for (let off = 0; off < padded.length; off += 64) {
+      for (let i = 0; i < 16; i++) W[i] = dv.getUint32(off + i * 4);
+      for (let i = 16; i < 64; i++) {
+        const s0 = rotr(W[i-15], 7) ^ rotr(W[i-15], 18) ^ (W[i-15] >>> 3);
+        const s1 = rotr(W[i-2], 17) ^ rotr(W[i-2], 19) ^ (W[i-2] >>> 10);
+        W[i] = (W[i-16] + s0 + W[i-7] + s1) >>> 0;
+      }
+      let [a, b, c, d, e, f, g, h] = H;
+      for (let i = 0; i < 64; i++) {
+        const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+        const ch = (e & f) ^ (~e & g);
+        const t1 = (h + S1 + ch + K[i] + W[i]) >>> 0;
+        const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const t2 = (S0 + maj) >>> 0;
+        h = g; g = f; f = e; e = (d + t1) >>> 0;
+        d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+      }
+      H[0] += a; H[1] += b; H[2] += c; H[3] += d; H[4] += e; H[5] += f; H[6] += g; H[7] += h;
+    }
+    return [...H].map(x => x.toString(16).padStart(8, '0')).join('');
+  }
+
+  /* ---------- Helpers ---------- */
+  const fmt = s => {
+    s = Math.max(0, Math.ceil(s));
+    return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  };
+
+  function remaining() {
+    if (!state.running) return state.remainingAtStop;
+    const elapsed = (performance.now() - state.startedAt) / 1000;
+    return TIMER_SECONDS - elapsed - state.penaltySec;
+  }
+
+  function renderTimer() {
+    const r = remaining();
+    els.timer.textContent = fmt(r);
+    els.timer.classList.toggle('crit', r <= CRIT_AT_SEC);
+    els.timer.classList.toggle('warn', r > CRIT_AT_SEC && r <= WARN_AT_SEC);
+  }
+
+  function restartAnim(el, cls) {
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+  }
+
+  function applyPenalty(sec, label) {
+    state.penaltySec += sec;
+    els.penaltyFloat.textContent = `-${sec}s ${label}`;
+    restartAnim(els.timer, 'hit');
+    clearTimeout(state.penaltyFloatId);
+    state.penaltyFloatId = setTimeout(() => { els.penaltyFloat.textContent = ''; }, 2200);
+    renderTimer();
+    if (remaining() <= 0) lose();
+  }
+
+  /* ---------- Clue cards ---------- */
+  function buildClues() {
+    els.clues.innerHTML = '';
+    CLUES.forEach((b64, i) => {
+      const li = document.createElement('li');
+      li.className = 'clue';
+      const n = i + 1;
+      li.innerHTML = `
+        <div class="clue-head">
+          <span class="clue-num">CLUE ${String(n).padStart(2, '0')} <span>/ 10</span></span>
+          <button type="button" class="copy-btn" aria-label="Copy clue ${n}">Copy</button>
+        </div>
+        <pre class="b64" tabindex="0" aria-label="Encoded clue ${n}"></pre>`;
+      li.querySelector('.b64').textContent = b64;
+      const btn = li.querySelector('.copy-btn');
+      btn.addEventListener('click', () => copyText(b64, btn));
+      els.clues.appendChild(li);
+    });
+  }
+
+  async function copyText(text, btn) {
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      }
+    } catch (_) { /* fall through */ }
+    if (!ok) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+      document.body.removeChild(ta);
+    }
+    btn.textContent = ok ? 'Copied!' : 'Select & copy';
+    btn.classList.toggle('ok', ok);
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('ok'); }, 1500);
+  }
+
+  /* ---------- Game flow ---------- */
+  function reset() {
+    clearInterval(tickId);
+    termTimers.forEach(clearTimeout);
+    termTimers = [];
+    state = {
+      running: false, over: false, startedAt: 0, penaltySec: 0,
+      remainingAtStop: TIMER_SECONDS, fails: 0, hints: 0, checking: false, penaltyFloatId: null
+    };
+    els.input.value = '';
+    els.msg.textContent = '';
+    els.msg.className = 'msg';
+    els.failCount.textContent = '0';
+    els.hintCount.textContent = '0';
+    els.hintsList.innerHTML = '';
+    els.penaltyFloat.textContent = '';
+    setControls(false);
+    updateHintBtn();
+    renderTimer();
+  }
+
+  function setControls(on) {
+    els.input.disabled = !on;
+    els.decryptBtn.disabled = !on;
+    els.hintBtn.disabled = !on || state.hints >= HINT_LIMIT;
+  }
+
+  function start() {
+    reset();
+    state.running = true;
+    state.startedAt = performance.now();
+    els.startOverlay.hidden = true;
+    els.loseOverlay.hidden = true;
+    els.winOverlay.hidden = true;
+    setControls(true);
+    tickId = setInterval(() => {
+      renderTimer();
+      if (remaining() <= 0) lose();
+    }, 250);
+    els.input.focus();
+  }
+
+  function stop() {
+    state.remainingAtStop = remaining();
+    state.running = false;
+    state.over = true;
+    clearInterval(tickId);
+    setControls(false);
+  }
+
+  function lose() {
+    if (state.over) return;
+    stop();
+    state.remainingAtStop = 0;
+    renderTimer();
+    reportToHub({
+      status: 'fail', score: 0, maxScore: SCORE_BASE, hints: state.hints, attempts: state.fails,
+      durationSec: Math.round((performance.now() - state.startedAt) / 1000), details: { reason: "Time's up" }
+    });
+    els.loseOverlay.hidden = false;
+    els.retryBtn.focus();
+  }
+
+  function win() {
+    const elapsedSec = (performance.now() - state.startedAt) / 1000;
+    stop();
+    renderTimer();
+    const score = Math.max(0, Math.round(
+      SCORE_BASE
+      - state.fails * SCORE_PER_WRONG
+      - state.hints * SCORE_PER_HINT
+      - (elapsedSec / 60) * SCORE_PER_MINUTE
+    ));
+    els.rTime.textContent = fmt(elapsedSec);
+    els.rFails.textContent = state.fails;
+    els.rHints.textContent = state.hints;
+    els.rScore.textContent = score;
+    reportToHub({
+      status: 'pass', score, maxScore: SCORE_BASE, hints: state.hints, attempts: state.fails,
+      durationSec: Math.round(elapsedSec)
+    });
+    els.winOverlay.hidden = false;
+    els.againBtn.focus();
+    runTerminal();
+  }
+
+  function runTerminal() {
+    const lines = [
+      '> key accepted. initialising decryptor...',
+      '> restoring finance/Q3_ledger.xlsx ........ OK',
+      '> restoring hr/payroll_2026.csv ........... OK',
+      '> restoring ops/plant_schedules.pdf ....... OK',
+      '> restoring legal/contracts.zip ........... OK',
+      '> restoring backups/db_snapshot.bak ....... OK',
+      '> purging ransom note ..................... OK',
+      '> all files restored. system clean.'
+    ];
+    els.term.textContent = '';
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor';
+    cursor.innerHTML = '&nbsp;';
+    const text = document.createTextNode('');
+    els.term.append(text, cursor);
+    const full = lines.join('\n');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { text.data = full; return; }
+    let i = 0;
+    const step = () => {
+      i = Math.min(full.length, i + 2);
+      text.data = full.slice(0, i);
+      els.term.scrollTop = els.term.scrollHeight;
+      if (i < full.length) termTimers.push(setTimeout(step, full[i - 1] === '\n' ? 220 : 18));
+    };
+    step();
+  }
+
+  async function submitKey(e) {
+    e.preventDefault();
+    if (!state.running || state.checking) return;
+    const guess = els.input.value.trim().toUpperCase();
+    if (guess.length !== 10) {
+      els.msg.textContent = 'Key must be exactly 10 letters.';
+      els.msg.className = 'msg err';
+      restartAnim(els.keyPanel, 'shake');
+      return;
+    }
+    state.checking = true;
+    let hash;
+    try { hash = await sha256Hex(guess); } finally { state.checking = false; }
+    if (!state.running) return;
+    if (hash === KEY_HASH) {
+      els.msg.textContent = 'ACCESS GRANTED';
+      els.msg.className = 'msg ok';
+      win();
+    } else {
+      state.fails++;
+      els.failCount.textContent = state.fails;
+      els.msg.textContent = 'ACCESS DENIED, key rejected';
+      els.msg.className = 'msg err';
+      restartAnim(els.keyPanel, 'shake');
+      els.input.select();
+      applyPenalty(WRONG_PENALTY_SEC, 'wrong key');
+    }
+  }
+
+  function updateHintBtn() {
+    const left = HINT_LIMIT - state.hints;
+    els.hintMeta.textContent = left > 0
+      ? `${left} left. Each costs ${HINT_COST_SEC}s.`
+      : 'No hints left.';
+    els.hintCount.textContent = state.hints;
+    if (left <= 0) els.hintBtn.disabled = true;
+  }
+
+  function requestHint() {
+    if (!state.running || state.hints >= HINT_LIMIT) return;
+    const li = document.createElement('li');
+    li.textContent = `Hint ${state.hints + 1}: ${HINTS[state.hints]}`;
+    els.hintsList.appendChild(li);
+    state.hints++;
+    updateHintBtn();
+    applyPenalty(HINT_COST_SEC, 'hint');
+  }
+
+  /* ---------- Wire up ---------- */
+  els.input.addEventListener('input', () => {
+    const pos = els.input.selectionStart;
+    els.input.value = els.input.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 10);
+    try { els.input.setSelectionRange(pos, pos); } catch (_) {}
+    if (els.msg.classList.contains('err')) { els.msg.textContent = ''; els.msg.className = 'msg'; }
+  });
+  els.form.addEventListener('submit', submitKey);
+  els.hintBtn.addEventListener('click', requestHint);
+  els.startBtn.addEventListener('click', start);
+  els.retryBtn.addEventListener('click', start);
+  els.againBtn.addEventListener('click', start);
+
+  const rules = `You have ${fmt(TIMER_SECONDS)}. Wrong keys cost ${WRONG_PENALTY_SEC}s. ` +
+                `Hints cost ${HINT_COST_SEC}s each (max ${HINT_LIMIT}).`;
+  els.startRules.textContent = rules;
+  els.rulesMeta.textContent = rules;
+  els.hintMax.textContent = HINT_LIMIT;
+
+  buildClues();
+  reset();
+  els.startBtn.focus();
+})();
+</script>
+</body>
+</html>

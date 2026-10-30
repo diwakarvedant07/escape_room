@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--BASE-->
+<title>Escape the Breach</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" aria-live="polite"></div>
+
+<div class="player" id="player" hidden>
+  <div class="player-bar">
+    <button type="button" class="btn ghost" id="backBtn">← Puzzles</button>
+    <span class="player-title" id="playerTitle"></span>
+    <span class="player-team" id="playerTeam"></span>
+  </div>
+  <div class="recorded" id="recorded" role="status" hidden>
+    <span id="recordedText">Result recorded.</span>
+    <button type="button" class="btn small" id="recordedBack">Back to puzzles</button>
+  </div>
+  <iframe id="frame" title="Puzzle" allow="autoplay; fullscreen; clipboard-write"></iframe>
+</div>
+
+<dialog id="confirmFinish">
+  <form method="dialog">
+    <h2>Finish and lock your results?</h2>
+    <p>Any puzzle you haven't finished will be marked <b>Not attempted</b>, and nothing more can be played by your team on any device.</p>
+    <div class="row end">
+      <button class="btn ghost" value="cancel">Keep playing</button>
+      <button class="btn danger" value="ok">Finish now</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>

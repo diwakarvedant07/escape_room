@@ -1,0 +1,1012 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hollywood Hacked</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ---------- Tokens: terminal-dark default ---------- */
+  :root {
+    color-scheme: dark;
+    --bg: #0a0e0c;
+    --surface: #111714;
+    --surface-2: #17201b;
+    --border: #26332c;
+    --text: #d8e6dd;
+    --muted: #8c9d93;
+    --accent: #3ddc84;
+    --accent-ink: #04110a;
+    --focus: #7cf0b0;
+    --ring: #f5d04a;
+    --green: #3ddc84;
+    --blue: #5aa9ff;
+    --amber: #f2b134;
+    --red: #ff6464;
+    --on-tier: #0a0e0c;
+    --ghost-shadow: 0 14px 34px rgba(0, 0, 0, .55);
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --bg: #f3f6f3;
+      --surface: #ffffff;
+      --surface-2: #f7faf7;
+      --border: #d2dbd5;
+      --text: #13201a;
+      --muted: #56665c;
+      --accent: #0f8a4a;
+      --accent-ink: #ffffff;
+      --focus: #0b6b39;
+      --ring: #b87400;
+      --green: #13834a;
+      --blue: #1f63c4;
+      --amber: #8f5c00;
+      --red: #c2332c;
+      --on-tier: #ffffff;
+      --ghost-shadow: 0 14px 30px rgba(20, 40, 30, .22);
+    }
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f3f6f3;
+    --surface: #ffffff;
+    --surface-2: #f7faf7;
+    --border: #d2dbd5;
+    --text: #13201a;
+    --muted: #56665c;
+    --accent: #0f8a4a;
+    --accent-ink: #ffffff;
+    --focus: #0b6b39;
+    --ring: #b87400;
+    --green: #13834a;
+    --blue: #1f63c4;
+    --amber: #8f5c00;
+    --red: #c2332c;
+    --on-tier: #ffffff;
+    --ghost-shadow: 0 14px 30px rgba(20, 40, 30, .22);
+  }
+
+  /* ---------- Base ---------- */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 var(--sans);
+  }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .app { max-width: 980px; margin: 0 auto; padding: 20px 16px 0; }
+
+  /* ---------- Header ---------- */
+  .eyebrow {
+    margin: 0 0 6px;
+    font: 600 12px/1.4 var(--mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .eyebrow::before { content: "> "; color: var(--muted); }
+  h1 {
+    margin: 0;
+    font: 700 clamp(28px, 7vw, 44px)/1.1 var(--mono);
+    letter-spacing: -.02em;
+  }
+  h1 .cursor { color: var(--accent); }
+  h1:focus { outline: none; }
+  .lede { margin: 10px 0 0; color: var(--muted); max-width: 62ch; }
+  .lede strong { color: var(--text); font-weight: 600; }
+  .notice {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border: 1px solid var(--amber);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .notice code { font-family: var(--mono); font-size: 13px; }
+
+  /* ---------- Tier board ---------- */
+  .tiers {
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .tier {
+    display: grid;
+    grid-template-columns: 132px minmax(0, 1fr);
+    min-height: 92px;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .tier:first-child { border-top: 0; }
+  .tier-label {
+    display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    padding: 10px;
+    background: var(--tc);
+    color: var(--on-tier);
+    min-width: 0;
+  }
+  .tier-name { font: 700 16px/1.15 var(--mono); overflow-wrap: anywhere; }
+  .tier-sub { font: 600 11px/1.2 var(--mono); opacity: .85; overflow-wrap: anywhere; }
+  .drop {
+    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 8px;
+    padding: 8px;
+    min-width: 0;
+    min-height: 92px;
+  }
+  .drop:empty::before {
+    content: attr(data-empty);
+    align-self: center;
+    padding: 4px 6px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .zone { transition: background-color .12s ease, box-shadow .12s ease; }
+  .zone:focus-visible { outline-offset: -3px; }
+  body.has-selection .zone .drop { box-shadow: inset 0 0 0 1px var(--ring); }
+  body.has-selection .zone .drop:empty::before { color: var(--text); }
+  .zone.drop-hover .drop {
+    background: color-mix(in srgb, var(--tc) 18%, transparent);
+    box-shadow: inset 0 0 0 2px var(--tc);
+  }
+
+  /* ---------- Pool ---------- */
+  .pool-wrap { margin-top: 20px; }
+  .pool-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin-bottom: 8px;
+  }
+  .pool-head h2 { margin: 0; font: 700 16px/1.2 var(--mono); }
+  .left { font: 600 13px/1.2 var(--mono); color: var(--muted); }
+  .pool {
+    --tc: var(--muted);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    cursor: pointer;
+  }
+  .pool .drop { min-height: 80px; }
+
+  /* ---------- Cards ---------- */
+  .card {
+    position: relative;
+    display: flex; flex-direction: column;
+    flex: 0 0 172px;
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--tc);
+    border-radius: 8px;
+    background: var(--surface-2);
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    cursor: grab;
+  }
+  .pool .card { flex-basis: 218px; }
+  .card-main {
+    display: flex; flex-direction: column; gap: 2px;
+    width: 100%;
+    margin: 0;
+    padding: 9px 10px 6px;
+    border: 0;
+    border-radius: 6px 6px 0 0;
+    background: none;
+    text-align: left;
+    cursor: inherit;
+    touch-action: none;
+  }
+  .card-title { font: 700 14px/1.25 var(--mono); overflow-wrap: anywhere; }
+  .card-meta { font: 500 12px/1.3 var(--mono); color: var(--muted); }
+  .card-teaser { margin-top: 4px; font-size: 13px; line-height: 1.35; color: var(--muted); }
+  .tier .card-teaser { display: none; }
+  .clip-btn {
+    align-self: flex-start;
+    margin: 0 10px 9px;
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--accent);
+    font: 600 12px/1.2 var(--mono);
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  .clip-btn:hover { border-color: var(--accent); }
+  .card.is-selected {
+    outline: 3px solid var(--ring);
+    outline-offset: 1px;
+  }
+  .card.is-dragging { opacity: .35; }
+  .ghost {
+    position: fixed; left: 0; top: 0; z-index: 50;
+    margin: 0;
+    pointer-events: none;
+    box-shadow: var(--ghost-shadow);
+    opacity: .96;
+    cursor: grabbing;
+  }
+  body.dragging, body.dragging * { cursor: grabbing !important; }
+
+  /* ---------- Submit bar ---------- */
+  .kbd-hint { margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+  .kbd-hint kbd {
+    font: 600 12px var(--mono);
+    padding: 0 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+  .submit-bar {
+    position: sticky; bottom: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin: 16px -16px 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(6px);
+  }
+  .submit-hint { font-size: 14px; color: var(--muted); }
+  .btn {
+    padding: 11px 18px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 700 14px/1.2 var(--mono);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:disabled {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+  .btn.secondary { background: transparent; color: var(--accent); }
+
+  /* ---------- Closing screen ---------- */
+  .closing { padding: 8px 0 40px; }
+  .closing h2 {
+    margin: 0;
+    font: 700 clamp(26px, 6.5vw, 40px)/1.15 var(--mono);
+    letter-spacing: -.02em;
+  }
+  .closing h2:focus { outline: none; }
+  .closing .body { margin: 12px 0 0; max-width: 64ch; }
+  .closing .body + .body { margin-top: 8px; }
+  .closing .em { font-weight: 600; color: var(--accent); }
+  .closing h3 { margin: 28px 0 10px; font: 700 16px/1.2 var(--mono); }
+  .watchlist {
+    list-style: none; margin: 0; padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .wl-row {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr) auto;
+    gap: 6px 12px;
+    align-items: start;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .wl-row:first-child { border-top: 0; }
+  .pill {
+    justify-self: start;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--tc);
+    color: var(--on-tier);
+    font: 700 12px/1.3 var(--mono);
+    white-space: nowrap;
+  }
+  .wl-title { font: 700 15px/1.3 var(--mono); overflow-wrap: anywhere; }
+  .wl-meta { display: block; font: 500 12px/1.4 var(--mono); color: var(--muted); }
+  .wl-why { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+  .wl-clip {
+    color: var(--accent);
+    font: 600 13px/1.3 var(--mono);
+    white-space: nowrap;
+    text-underline-offset: 3px;
+  }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .copy-status { min-height: 1.5em; margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+  .copy-fallback textarea {
+    display: block;
+    width: 100%;
+    min-height: 200px;
+    margin-top: 6px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: 13px/1.5 var(--mono);
+  }
+  .footer { padding: 24px 0 28px; font: 12px/1.4 var(--mono); color: var(--muted); }
+
+  /* ---------- Clip modal ---------- */
+  dialog.clip {
+    width: min(760px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+    color: var(--text);
+  }
+  dialog.clip::backdrop { background: rgba(0, 0, 0, .7); }
+  .clip-inner { padding: 14px; }
+  .clip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .clip-head h2 { margin: 0; font: 700 17px/1.3 var(--mono); overflow-wrap: anywhere; }
+  .clip-close {
+    flex: none;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface-2);
+    font: 600 13px/1.2 var(--mono);
+    cursor: pointer;
+  }
+  .clip-frame {
+    position: relative;
+    margin-top: 12px;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+  }
+  .clip-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .clip-foot { margin: 10px 0 0; font-size: 14px; color: var(--muted); }
+  .clip-foot a { color: var(--accent); font-weight: 600; }
+
+  /* ---------- Narrow screens ---------- */
+  @media (max-width: 560px) {
+    .tier { grid-template-columns: 78px minmax(0, 1fr); }
+    .tier-label { padding: 8px 6px; }
+    .tier-name { font-size: 13px; }
+    .tier-sub { font-size: 10px; }
+    .drop { gap: 6px; padding: 6px; }
+    .card, .pool .card { flex: 0 0 calc(50% - 3px); }
+    .card-main { padding: 8px 8px 5px; }
+    .card-title { font-size: 13px; }
+    .clip-btn { margin: 0 6px 7px; padding: 4px 6px; font-size: 11px; }
+    .submit-hint { font-size: 13px; }
+    .wl-row { grid-template-columns: minmax(0, 1fr) auto; }
+    .wl-row .pill { grid-column: 1 / -1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <p class="eyebrow">Escape the Breach · Game 7 of 7</p>
+    <h1 id="mainHead" tabindex="-1">Hollywood Hacked<span class="cursor" aria-hidden="true">_</span></h1>
+    <p class="lede" id="lede">Rank each scene by how realistic the hacking is. <strong>There are no wrong answers.</strong> Drag a card onto a tier, or tap a card and then tap a tier. Haven't seen it? Watch the clip.</p>
+    <p class="notice" id="fileNotice" hidden>Clips need the page served over http or https. Opened from a file, YouTube usually shows a player error. Run <code>python3 -m http.server</code> in this folder and open <code>http://localhost:8000</code>.</p>
+  </header>
+
+  <main id="boardView">
+    <section class="tiers" id="tiers" aria-label="Tiers"></section>
+
+    <section class="pool-wrap" aria-labelledby="poolHead">
+      <div class="pool-head">
+        <h2 id="poolHead">Unranked</h2>
+        <span class="left" id="leftCount"></span>
+      </div>
+      <div class="pool zone" data-zone="pool" role="group" tabindex="0" aria-label="Unranked pool">
+        <div class="drop" data-empty="All cards are placed. Submit when your team is happy."></div>
+      </div>
+    </section>
+
+    <p class="kbd-hint">Keyboard: <kbd>Tab</kbd> to a card, <kbd>Enter</kbd> to select it, then <kbd>Enter</kbd> on a tier. On a card, <kbd>1</kbd>–<kbd>4</kbd> place it straight into a tier and <kbd>0</kbd> sends it back.</p>
+
+    <div class="submit-bar">
+      <span class="submit-hint" id="submitHint"></span>
+      <button type="button" class="btn" id="submitBtn" disabled>Submit my board</button>
+    </div>
+  </main>
+
+  <section class="closing" id="closeView" hidden aria-labelledby="closeHead">
+    <p class="eyebrow">Board submitted</p>
+    <h2 id="closeHead" tabindex="-1">There are no right answers here.</h2>
+    <p class="body">Hacking on screen is a matter of taste as well as technique, so every team's board looks a little different.</p>
+    <p class="body"><span class="em">Progress matters more than perfection.</span> You have also just built yourself a watchlist.</p>
+
+    <h3>Your watchlist</h3>
+    <ol class="watchlist" id="watchlist"></ol>
+
+    <div class="actions">
+      <button type="button" class="btn" id="copyBtn">Copy watchlist</button>
+      <button type="button" class="btn secondary" id="againBtn">Play again</button>
+    </div>
+    <p class="copy-status" id="copyStatus" role="status"></p>
+    <div class="copy-fallback" id="copyFallback" hidden>
+      <label for="copyText">Copying was blocked by the browser. Select the text below and copy it yourself.</label>
+      <textarea id="copyText" readonly></textarea>
+    </div>
+  </section>
+
+  <footer class="footer">Escape the Breach · Final game</footer>
+</div>
+
+<dialog class="clip" id="clipDialog" aria-labelledby="clipTitle">
+  <div class="clip-inner">
+    <div class="clip-head">
+      <h2 id="clipTitle"></h2>
+      <button type="button" class="clip-close" id="clipClose">Close</button>
+    </div>
+    <div class="clip-frame" id="clipFrame"></div>
+    <p class="clip-foot"><span id="clipRange"></span> Video not playing? <a id="clipLink" href="#" target="_blank" rel="noopener">Open it on YouTube</a>.</p>
+  </div>
+</dialog>
+
+<div class="sr-only" id="live" aria-live="polite"></div>
+
+<script>
+// =====================================================================
+// CONFIG: all game content lives here. Edit freely; no logic below
+// needs to change. Keep tier ids unique and title ids unique.
+// =====================================================================
+const CONFIG = {
+  // true: "Watch the clip" opens the in-game YouTube modal.
+  // false: it opens the YouTube watch page in a new tab (for sandboxes that block iframes).
+  EMBED: true,
+
+  // Every clip stops this many seconds after its start (YouTube end = start + CLIP_SECONDS).
+  CLIP_SECONDS: 25,
+
+  // Fixed order, top to bottom. color is one of: green, blue, amber, red.
+  TIERS: [
+    { id: 'S', name: 'S Tier',      subtitle: 'Root Access', color: 'green', meaning: 'Realistic hacking. Every security professional should watch it.' },
+    { id: 'A', name: 'A Tier',      subtitle: 'Admin',       color: 'blue',  meaning: 'Mostly believable, or great enough that the inaccuracies are forgivable. Worth a watch.' },
+    { id: 'B', name: 'B Tier',      subtitle: 'Guest User',  color: 'amber', meaning: "Fun to watch, but don't take notes." },
+    { id: 'X', name: 'Recycle Bin', subtitle: 'rm -rf',      color: 'red',   meaning: 'Pure Hollywood hacking. Watch it only to laugh at it.' }
+  ],
+
+  // start = second where the cyber moment begins. None of these ids or start times
+  // have been checked by a human yet.
+  TITLES: [
+    { id: 'mr-robot', title: 'Mr. Robot', year: '2015–19', type: 'Series',
+      teaser: 'A cybersecurity engineer by day, a vigilante hacker by night',
+      youtube: 'zhvyK8q2Qtg',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'Real tools and attack chains, with security people checking every scene.' },
+
+    { id: 'wargames', title: 'WarGames', year: '1983', type: 'Movie',
+      teaser: 'A teenager almost starts World War III from his bedroom',
+      youtube: 'O77v7lVKgNU',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'Dated modem tricks, but war dialing and weak passwords were real.' },
+
+    { id: 'sneakers', title: 'Sneakers', year: '1992', type: 'Movie',
+      teaser: 'A team of security testers gets pulled into a spy plot',
+      youtube: 'F5bAa6gFvLs',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'Pen testing and social engineering treated like real work.' },
+
+    { id: 'hackers', title: 'Hackers', year: '1995', type: 'Movie',
+      teaser: 'Rollerblades, neon and a lot of 3D graphics',
+      youtube: 'Bmz67ErIRa4',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'The subculture rings true. Flying through a 3D city to hack a server does not.' },
+
+    { id: 'swordfish', title: 'Swordfish', year: '2001', type: 'Movie',
+      teaser: 'Hacking under pressure, in the most literal Hollywood sense',
+      youtube: 'zfy5dFhw3ik',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'A key cracked in a minute with a gun to the head and a glowing cube on screen.' },
+
+    { id: 'who-am-i', title: 'Who Am I', year: '2014', type: 'Movie (German)',
+      teaser: 'A shy hacker joins a group of hacktivists and things get complicated',
+      youtube: 'xiSYI7zdF5I',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'Understands that people are the weakest link, so social engineering does most of the work.' },
+
+    { id: 'jurassic-park', title: 'Jurassic Park', year: '1993', type: 'Movie',
+      teaser: '"It\'s a Unix system! I know this!"',
+      youtube: 'dFUlAQZB9Ng',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'The file browser was real software. Calling it hacking is the stretch.' },
+
+    { id: 'ncis', title: 'NCIS (the famous keyboard scene)', year: '2004', type: 'Series episode',
+      teaser: 'Two agents, one keyboard, four hands',
+      youtube: 'msX4oAXpvUE',
+      start: 0, // TODO: set start (seconds) to where the cyber scene begins; verify id, length and that embedding is allowed
+      why: 'Two people on one keyboard to stop an intrusion. The shorthand for bad TV hacking.' }
+  ]
+};
+// =====================================================================
+// END CONFIG
+// =====================================================================
+
+(function () {
+  'use strict';
+
+  const DRAG_THRESHOLD = 8;
+  const POOL = 'pool';
+  const TIER_IDS = CONFIG.TIERS.map(t => t.id);
+  const ZONE_IDS = TIER_IDS.concat(POOL);
+  const titleById = new Map(CONFIG.TITLES.map(t => [t.id, t]));
+  const tierById = new Map(CONFIG.TIERS.map(t => [t.id, t]));
+  const total = CONFIG.TITLES.length;
+
+  const $ = id => document.getElementById(id);
+  const boardView = $('boardView');
+  const closeView = $('closeView');
+  const tiersEl = $('tiers');
+  const leftCount = $('leftCount');
+  const submitBtn = $('submitBtn');
+  const submitHint = $('submitHint');
+  const live = $('live');
+  const dialog = $('clipDialog');
+
+  const cardEls = new Map();   // title id -> .card element
+  const zoneEls = new Map();   // zone id -> .zone element
+  const dropEls = new Map();   // zone id -> .drop element
+
+  let zones = {};              // zone id -> ordered title ids
+  let selectedId = null;
+  let drag = null;
+  let suppressClickUntil = 0;
+  let clipOpener = null;
+
+  const tierColor = tier => `var(--${tier.color})`;
+  const startOf = t => Math.max(0, Math.floor(Number(t.start) || 0));
+  const fmtTime = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  const watchUrl = t => `https://www.youtube.com/watch?v=${encodeURIComponent(t.youtube)}&t=${startOf(t)}s`;
+  const embedUrl = t => {
+    const s = startOf(t);
+    const params = new URLSearchParams({
+      autoplay: 1, rel: 0, playsinline: 1, modestbranding: 1,
+      start: s, end: s + CONFIG.CLIP_SECONDS
+    });
+    return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(t.youtube)}?${params}`;
+  };
+
+  function el(tag, attrs, children) {
+    const node = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (k === 'text') node.textContent = v;
+      else if (k === 'style') node.style.cssText = v;
+      else node.setAttribute(k, v);
+    }
+    (children || []).forEach(c => node.appendChild(c));
+    return node;
+  }
+
+  function announce(msg) {
+    live.textContent = '';
+    setTimeout(() => { live.textContent = msg; }, 30);
+  }
+
+  function zoneName(zoneId) {
+    return zoneId === POOL ? 'Unranked' : tierById.get(zoneId).name;
+  }
+
+  // ---------- Build DOM ----------
+  function buildTiers() {
+    CONFIG.TIERS.forEach(tier => {
+      const drop = el('div', { class: 'drop', 'data-empty': tier.meaning });
+      const row = el('div', {
+        class: 'tier zone',
+        'data-zone': tier.id,
+        role: 'group',
+        tabindex: '0',
+        style: `--tc: ${tierColor(tier)}`,
+        'aria-label': `${tier.name}, ${tier.subtitle}. ${tier.meaning}`
+      }, [
+        el('div', { class: 'tier-label', title: tier.meaning }, [
+          el('span', { class: 'tier-name', text: tier.name }),
+          el('span', { class: 'tier-sub', text: tier.subtitle })
+        ]),
+        drop
+      ]);
+      tiersEl.appendChild(row);
+      zoneEls.set(tier.id, row);
+      dropEls.set(tier.id, drop);
+    });
+    const pool = document.querySelector('.pool');
+    zoneEls.set(POOL, pool);
+    dropEls.set(POOL, pool.querySelector('.drop'));
+  }
+
+  function buildCards() {
+    CONFIG.TITLES.forEach(t => {
+      const main = el('button', { type: 'button', class: 'card-main', 'aria-pressed': 'false' }, [
+        el('span', { class: 'card-title', text: t.title }),
+        el('span', { class: 'card-meta', text: `${t.year} · ${t.type}` }),
+        el('span', { class: 'card-teaser', text: t.teaser }),
+        el('span', { class: 'sr-only card-where' })
+      ]);
+      const clip = el('button', {
+        type: 'button', class: 'clip-btn', 'data-clip': t.id,
+        'aria-label': `Watch the clip: ${t.title}`, text: '▶ Watch the clip'
+      });
+      const card = el('div', { class: 'card', 'data-id': t.id, title: t.teaser }, [main, clip]);
+      cardEls.set(t.id, card);
+    });
+  }
+
+  // ---------- State ----------
+  function resetState() {
+    zones = {};
+    ZONE_IDS.forEach(z => { zones[z] = []; });
+    zones[POOL] = CONFIG.TITLES.map(t => t.id);
+    selectedId = null;
+  }
+
+  function zoneOf(id) {
+    return ZONE_IDS.find(z => zones[z].includes(id));
+  }
+
+  function moveCard(id, toZone, beforeId) {
+    const from = zoneOf(id);
+    zones[from] = zones[from].filter(x => x !== id);
+    const list = zones[toZone];
+    const idx = beforeId && beforeId !== id ? list.indexOf(beforeId) : -1;
+    if (idx < 0) list.push(id); else list.splice(idx, 0, id);
+    announce(`${titleById.get(id).title} placed in ${zoneName(toZone)}. ${zones[POOL].length} of ${total} left.`);
+  }
+
+  // ---------- Render ----------
+  function render() {
+    const active = document.activeElement;
+    ZONE_IDS.forEach(z => {
+      const drop = dropEls.get(z);
+      zones[z].forEach(id => {
+        const card = cardEls.get(id);
+        card.style.removeProperty('--tc');
+        drop.appendChild(card);
+        card.querySelector('.card-where').textContent = z === POOL ? ', unranked' : `, in ${zoneName(z)}`;
+      });
+    });
+    cardEls.forEach((card, id) => {
+      const on = id === selectedId;
+      card.classList.toggle('is-selected', on);
+      card.querySelector('.card-main').setAttribute('aria-pressed', String(on));
+    });
+    document.body.classList.toggle('has-selection', selectedId !== null);
+
+    const left = zones[POOL].length;
+    leftCount.textContent = `${left} of ${total} left`;
+    submitBtn.disabled = left > 0;
+    submitHint.textContent = left > 0
+      ? `Place all ${total} to submit (${left} left)`
+      : 'All placed. Ready when you are.';
+
+    // Moving a focused node blurs it; put focus back.
+    if (active && active !== document.activeElement && document.contains(active) && !active.closest('[hidden]')) {
+      active.focus({ preventScroll: true });
+    }
+  }
+
+  // ---------- Select / place ----------
+  function toggleSelect(id) {
+    selectedId = selectedId === id ? null : id;
+    render();
+    announce(selectedId
+      ? `${titleById.get(id).title} selected. Now choose a tier.`
+      : `${titleById.get(id).title} deselected.`);
+  }
+
+  function placeSelectedIn(zoneId) {
+    if (!selectedId) return;
+    const id = selectedId;
+    selectedId = null;
+    moveCard(id, zoneId);
+    render();
+  }
+
+  tiersEl.parentElement.addEventListener('click', e => {
+    if (Date.now() < suppressClickUntil) return;
+
+    const clipBtn = e.target.closest('.clip-btn');
+    if (clipBtn) { openClip(clipBtn.dataset.clip, clipBtn); return; }
+
+    const main = e.target.closest('.card-main');
+    if (main) { toggleSelect(main.parentElement.dataset.id); return; }
+
+    const zone = e.target.closest('.zone');
+    if (zone && selectedId) placeSelectedIn(zone.dataset.zone);
+  });
+
+  boardView.addEventListener('keydown', e => {
+    const main = e.target.closest && e.target.closest('.card-main');
+    if (main && e.target === main) {
+      const id = main.parentElement.dataset.id;
+      const n = '1234567890'.indexOf(e.key) + 1;
+      if (e.key === '0') {
+        e.preventDefault(); selectedId = null; moveCard(id, POOL); render();
+      } else if (n >= 1 && n <= TIER_IDS.length) {
+        e.preventDefault(); selectedId = null; moveCard(id, TIER_IDS[n - 1]); render();
+      } else if (e.key === 'Escape' && selectedId) {
+        e.preventDefault(); toggleSelect(selectedId);
+      }
+      return;
+    }
+    const zone = e.target.classList && e.target.classList.contains('zone') ? e.target : null;
+    if (zone && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      if (selectedId) placeSelectedIn(zone.dataset.zone);
+      else announce('Select a card first, then choose a tier.');
+    }
+  });
+
+  // ---------- Pointer drag (mouse + touch share this path) ----------
+  boardView.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (e.target.closest('.clip-btn')) return;           // clip links never start a drag
+    const card = e.target.closest('.card');
+    if (!card || drag) return;
+    drag = { id: card.dataset.id, card, pid: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, active: false };
+  });
+
+  document.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (!drag.active) {
+      if (Math.hypot(drag.x - drag.x0, drag.y - drag.y0) < DRAG_THRESHOLD) return;
+      startDrag();
+    }
+    e.preventDefault();
+    positionGhost();
+    updateHover();
+  }, { passive: false });
+
+  document.addEventListener('pointerup', e => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (drag.active) endDrag(true);
+    drag = null;
+  });
+
+  document.addEventListener('pointercancel', e => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    if (drag.active) endDrag(false);
+    drag = null;
+  });
+
+  function startDrag() {
+    const rect = drag.card.getBoundingClientRect();
+    drag.active = true;
+    drag.offX = drag.x0 - rect.left;
+    drag.offY = drag.y0 - rect.top;
+    const ghost = drag.card.cloneNode(true);
+    ghost.classList.remove('is-selected');
+    ghost.classList.add('ghost');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.inert = true;
+    ghost.style.width = rect.width + 'px';
+    ghost.style.setProperty('--tc', getComputedStyle(drag.card).getPropertyValue('--tc'));
+    document.body.appendChild(ghost);
+    drag.ghost = ghost;
+    drag.card.classList.add('is-dragging');
+    document.body.classList.add('dragging');
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+
+  function positionGhost() {
+    const tilt = matchMedia('(prefers-reduced-motion: reduce)').matches ? '' : ' rotate(2deg)';
+    drag.ghost.style.transform = `translate(${drag.x - drag.offX}px, ${drag.y - drag.offY}px)${tilt}`;
+  }
+
+  function updateHover() {
+    const under = document.elementFromPoint(drag.x, drag.y);
+    const zone = under ? under.closest('.zone') : null;
+    const overCard = under ? under.closest('.card') : null;
+    if (drag.zone !== zone) {
+      if (drag.zone) drag.zone.classList.remove('drop-hover');
+      if (zone) zone.classList.add('drop-hover');
+      drag.zone = zone;
+    }
+    drag.beforeId = overCard && zone && zone.contains(overCard) && overCard !== drag.card ? overCard.dataset.id : null;
+  }
+
+  function autoScroll() {
+    if (!drag || !drag.active) return;
+    const edge = 70, h = window.innerHeight;
+    let dy = 0;
+    if (drag.y < edge) dy = -(edge - drag.y) / 4;
+    else if (drag.y > h - edge) dy = (drag.y - (h - edge)) / 4;
+    if (dy) { window.scrollBy(0, dy); updateHover(); }
+    drag.raf = requestAnimationFrame(autoScroll);
+  }
+
+  function endDrag(commit) {
+    cancelAnimationFrame(drag.raf);
+    drag.ghost.remove();
+    drag.card.classList.remove('is-dragging');
+    document.body.classList.remove('dragging');
+    if (drag.zone) drag.zone.classList.remove('drop-hover');
+    if (commit && drag.zone) {
+      if (selectedId === drag.id) selectedId = null;
+      moveCard(drag.id, drag.zone.dataset.zone, drag.beforeId);
+    }
+    render();
+    suppressClickUntil = Date.now() + 120;   // the click that follows a drop is not a tap
+  }
+
+  // ---------- Clip modal ----------
+  function openClip(id, opener) {
+    const t = titleById.get(id);
+    if (!t) return;
+    if (!CONFIG.EMBED) {
+      window.open(watchUrl(t), '_blank', 'noopener');
+      return;
+    }
+    clipOpener = opener || null;
+    const s = startOf(t);
+    $('clipTitle').textContent = t.title;
+    $('clipRange').textContent = `Plays ${CONFIG.CLIP_SECONDS} seconds from ${fmtTime(s)}.`;
+    $('clipLink').href = watchUrl(t);
+    const iframe = el('iframe', {
+      src: embedUrl(t),
+      title: `${t.title} clip`,
+      allow: 'autoplay; encrypted-media; picture-in-picture; fullscreen',
+      allowfullscreen: '',
+      referrerpolicy: 'strict-origin-when-cross-origin'
+    });
+    $('clipFrame').replaceChildren(iframe);
+    dialog.showModal();
+    $('clipClose').focus();
+  }
+
+  $('clipClose').addEventListener('click', () => dialog.close());
+  dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });  // backdrop
+  dialog.addEventListener('close', () => {
+    $('clipFrame').replaceChildren();   // removing the iframe stops playback
+    if (clipOpener && document.contains(clipOpener)) clipOpener.focus();
+    clipOpener = null;
+  });
+
+  // ---------- Submit / closing screen ----------
+  function orderedWatchlist() {
+    return TIER_IDS.flatMap(z => zones[z].map(id => ({ tier: tierById.get(z), t: titleById.get(id) })));
+  }
+
+  function buildWatchlist() {
+    const list = $('watchlist');
+    list.replaceChildren();
+    orderedWatchlist().forEach(({ tier, t }) => {
+      const link = el('a', {
+        class: 'wl-clip', href: watchUrl(t), target: '_blank', rel: 'noopener',
+        'data-clip': t.id, 'aria-label': `Watch the clip: ${t.title}`, text: '▶ Clip'
+      });
+      list.appendChild(el('li', { class: 'wl-row' }, [
+        el('span', { class: 'pill', style: `--tc: ${tierColor(tier)}`, text: tier.name }),
+        el('div', {}, [
+          el('div', { class: 'wl-title', text: t.title }),
+          el('span', { class: 'wl-meta', text: `${t.year} · ${t.type}` }),
+          el('p', { class: 'wl-why', text: t.why })
+        ]),
+        link
+      ]));
+    });
+  }
+
+  $('watchlist').addEventListener('click', e => {
+    const link = e.target.closest('.wl-clip');
+    if (!link || !CONFIG.EMBED) return;      // with EMBED off the link opens YouTube itself
+    e.preventDefault();
+    openClip(link.dataset.clip, link);
+  });
+
+  // Escape Hub bridge (no-op when played standalone)
+  const startedAt = Date.now();
+  function reportToHub(r) {
+    try { if (window.parent !== window) window.parent.postMessage(Object.assign({ type: 'escape-hub:result', puzzle: 7 }, r), '*'); } catch (_) {}
+  }
+
+  submitBtn.addEventListener('click', () => {
+    if (zones[POOL].length > 0) return;
+    const board = {};
+    TIER_IDS.forEach(z => zones[z].forEach(id => { board[titleById.get(id).title] = z; }));
+    reportToHub({ status: 'completed', durationSec: Math.round((Date.now() - startedAt) / 1000), details: { board } });
+    selectedId = null;
+    buildWatchlist();
+    boardView.hidden = true;
+    $('lede').hidden = true;
+    closeView.hidden = false;
+    window.scrollTo(0, 0);
+    $('closeHead').focus({ preventScroll: true });
+  });
+
+  // ---------- Copy watchlist ----------
+  function watchlistText() {
+    const lines = orderedWatchlist().map(({ tier, t }) => `[${tier.name}] ${t.title} — ${t.year} · ${t.type}`);
+    return ['Hollywood Hacked: our watchlist', ...lines].join('\n');
+  }
+
+  async function copyText(text) {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (_) { /* fall through */ }
+    try {
+      const ta = el('textarea', { readonly: '', style: 'position:fixed;top:0;left:0;opacity:0;' });
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  $('copyBtn').addEventListener('click', async () => {
+    const text = watchlistText();
+    const status = $('copyStatus');
+    const fallback = $('copyFallback');
+    if (await copyText(text)) {
+      status.textContent = 'Watchlist copied to the clipboard.';
+      fallback.hidden = true;
+    } else {
+      status.textContent = '';
+      const ta = $('copyText');
+      ta.value = text;
+      fallback.hidden = false;
+      ta.focus();
+      ta.select();
+    }
+  });
+
+  // ---------- Play again ----------
+  $('againBtn').addEventListener('click', () => {
+    if (dialog.open) dialog.close();
+    resetState();
+    $('watchlist').replaceChildren();
+    $('copyStatus').textContent = '';
+    $('copyFallback').hidden = true;
+    $('copyText').value = '';
+    closeView.hidden = true;
+    $('lede').hidden = false;
+    boardView.hidden = false;
+    render();
+    window.scrollTo(0, 0);
+    $('mainHead').focus({ preventScroll: true });
+    announce('Board reset. All cards are back in Unranked.');
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !dialog.open && selectedId && !(e.target.closest && e.target.closest('.card-main'))) {
+      toggleSelect(selectedId);
+    }
+  });
+
+  // ---------- Init ----------
+  if (location.protocol === 'file:') $('fileNotice').hidden = false;
+
+  const todo = CONFIG.TITLES.filter(t => startOf(t) === 0).map(t => t.title);
+  if (todo.length) console.warn(`[Hollywood Hacked] TODO: clip start is still 0 for: ${todo.join(', ')}`);
+
+  buildTiers();
+  buildCards();
+  resetState();
+  render();
+})();
+</script>
+</body>
+</html>
