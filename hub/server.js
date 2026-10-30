@@ -38,10 +38,13 @@ const DATA_FILE = path.resolve(ROOT, env.DATA_FILE || 'data/results.json');
 const COOKIE = 'hub_session';
 const SESSION_DAYS = 7;
 
+// A puzzle is either one file ("file") or a folder ("dir" + entry "file" + "allow"ed sub-folders).
 const PUZZLES = JSON.parse(fs.readFileSync(path.join(ROOT, 'puzzles.json'), 'utf8')).map((p) => ({
   ...p,
   playable: !!p.file,
-  absFile: p.file ? path.resolve(ROOT, p.file) : null,
+  absDir: p.dir ? path.resolve(ROOT, p.dir) : null,
+  absFile: p.file ? path.resolve(ROOT, p.dir || '', p.file) : null,
+  allow: Array.isArray(p.allow) ? p.allow : [],
 }));
 for (const p of PUZZLES) {
   if (p.absFile && !fs.existsSync(p.absFile)) console.warn(`Warning: puzzle ${p.id} file not found: ${p.absFile}`);
@@ -122,7 +125,12 @@ function noteFailure(ip) {
 }
 
 // ---------- helpers ----------
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+const MIME = {
+  '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif',
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.woff2': 'font/woff2',
+};
 
 function send(res, status, body, headers = {}) {
   res.writeHead(status, Object.assign({ 'X-Content-Type-Options': 'nosniff' }, headers));
@@ -222,6 +230,19 @@ async function handle(req, res) {
     if (!puzzle || !puzzle.absFile) return send(res, 404, 'Not found');
     if (!p.endsWith('/')) return send(res, 301, '', { Location: `${BASE_PATH}/games/${g[1]}/` });
     return serveFile(res, puzzle.absFile, { 'X-Frame-Options': 'SAMEORIGIN' });
+  }
+
+  // Folder games: only files under the puzzle's "allow"ed sub-folders, with a known type.
+  const ga = p.match(/^\/games\/(\d+)\/(.+)$/);
+  if (ga) {
+    const puzzle = puzzleById.get(ga[1]);
+    const rel = ga[2];
+    if (!puzzle || !puzzle.absDir || rel.includes('..') || rel.includes('\\') || !puzzle.allow.some((a) => rel.startsWith(a))) {
+      return send(res, 404, 'Not found');
+    }
+    const file = path.resolve(puzzle.absDir, rel);
+    if (!file.startsWith(puzzle.absDir + path.sep) || !MIME[path.extname(file).toLowerCase()]) return send(res, 404, 'Not found');
+    return serveFile(res, file);
   }
 
   // Hub assets: flat files inside public/ only.

@@ -90,15 +90,16 @@ Results are reported by the game running in the player's browser, so a technical
 | 2 | Ransomware Recovery | pass (score /1000) or fail when time runs out; hints; wrong keys as attempts |
 | 3 | Breaking News | pass; score /15; wrong attempts; questions that needed a retry hint; rank |
 | 4 | Cyber Timeline | pass; hints; moves |
-| 5 | Picture This | not built yet: shown as *Coming soon* |
+| 5 | Picture This | pass when the vault opens, fail when the case freezes (time up); score /970; hints; wrong answers as attempts; rank |
 | 6 | Log Detective | pass, or fail when the 15-minute timer runs out first; report attempts |
 | 7 | Hollywood Hacked | completed; the team's tier board |
 
-## Adding puzzle 5 (or any game)
+## Adding or replacing a game
 
-1. Build the game as a single HTML file.
-2. Set its `file` in `hub/puzzles.json` (path relative to `hub/`).
-3. When the game ends, call:
+1. In `hub/puzzles.json`, either:
+   - a single-file game: set `file` to its path (relative to `hub/`), or
+   - a game made of several files: set `dir` to its folder, `file` to the entry page inside it, and `allow` to the sub-folders players need (puzzle 5 uses `["css/", "js/", "data/", "assets/"]`). Anything outside those folders, such as `tools/`, `tests/` or `package.json`, is never served.
+2. When the game ends, call:
 
 ```js
 function reportToHub(r) {
@@ -123,3 +124,4 @@ Each game got the small `reportToHub` function above and one call at each end st
 - Puzzle 1: `template.html` and `dist/game.html` both patched (so no rebuild is needed). `node build.js --check` passes. A later rebuild from the template keeps the bridge.
 - Puzzle 4: `build/game-template.html` patched, `cyber-timeline-game.html` regenerated with `node build/build-game.js`.
 - Puzzles 2, 3, 6, 7: patched in place.
+- Puzzle 5: `js/main.js` reports when the vault opens or the case freezes. Inside the hub it also pre-fills the team name and discards a saved game left on the device by a different team.
